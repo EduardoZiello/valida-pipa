@@ -10,7 +10,7 @@ import {
   TextInput,
 } from "react-native";
 
-import { abrirCamera } from "@/services/camera";
+import { abrirCamera, abrirGaleria } from "@/services/camera";
 import { obterCaminhao, salvarCaminhao } from "@/services/storage";
 
 export default function CaminhaoScreen() {
@@ -46,6 +46,57 @@ export default function CaminhaoScreen() {
       Alert.alert("Erro", "Não foi possível abrir a câmera.");
     }
   }
+  async function escolherDaGaleria() {
+    try {
+      const uri = await abrirGaleria();
+
+      if (uri) {
+        setFoto(uri);
+      }
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível abrir a galeria.");
+    }
+  }
+  function abrirMenuFoto() {
+    if (!foto) {
+      Alert.alert("Foto do Caminhão", "Escolha uma opção", [
+        {
+          text: "📷 Tirar foto",
+          onPress: tirarFoto,
+        },
+        {
+          text: "🖼 Galeria",
+          onPress: escolherDaGaleria,
+        },
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+      ]);
+
+      return;
+    }
+
+    Alert.alert("Foto do Caminhão", "O que deseja fazer?", [
+      {
+        text: "📷 Tirar outra foto",
+        onPress: tirarFoto,
+      },
+      {
+        text: "🖼 Escolher outra",
+        onPress: escolherDaGaleria,
+      },
+      {
+        text: "🗑 Remover foto",
+        style: "destructive",
+        onPress: () => setFoto(null),
+      },
+      {
+        text: "Cancelar",
+        style: "cancel",
+      },
+    ]);
+  }
 
   async function salvar() {
     const caminhao = {
@@ -67,7 +118,7 @@ export default function CaminhaoScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Pressable style={styles.photoCard} onPress={tirarFoto}>
+        <Pressable style={styles.photoCard} onPress={abrirMenuFoto}>
           {foto ? (
             <Image
               source={{ uri: foto }}
