@@ -1,15 +1,19 @@
-import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { obterRotaEmAndamento } from "@/services/rotas";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { obterMotorista } from "@/services/storage";
 
 export default function HomeScreen() {
   const [nomeMotorista, setNomeMotorista] = useState("");
+  const [temRotaEmAndamento, setTemRotaEmAndamento] = useState(false);
 
-  useEffect(() => {
-    carregarMotorista();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      carregarMotorista();
+    }, []),
+  );
 
   async function carregarMotorista() {
     const motorista = await obterMotorista();
@@ -17,6 +21,10 @@ export default function HomeScreen() {
     if (motorista?.nome) {
       setNomeMotorista(motorista.nome);
     }
+
+    const rota = await obterRotaEmAndamento();
+
+    setTemRotaEmAndamento(!!rota);
   }
 
   return (
@@ -33,9 +41,17 @@ export default function HomeScreen() {
 
       <Pressable
         style={styles.button}
-        onPress={() => router.push("/iniciar-rota")}
+        onPress={() => {
+          if (temRotaEmAndamento) {
+            router.push("/rota-em-andamento");
+          } else {
+            router.push("/iniciar-rota");
+          }
+        }}
       >
-        <Text style={styles.buttonText}>INICIAR ROTA</Text>
+        <Text style={styles.buttonText}>
+          {temRotaEmAndamento ? "CONTINUAR ROTA" : "INICIAR ROTA"}
+        </Text>
       </Pressable>
 
       <View style={styles.menu}>

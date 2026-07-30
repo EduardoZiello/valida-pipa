@@ -1,16 +1,123 @@
-import { useState } from "react";
+import { abrirCamera } from "@/services/camera";
+import { obterRotaEmAndamento, salvarRota } from "@/services/rotas";
+import { obterCaminhao, obterMotorista } from "@/services/storage";
+import * as Location from "expo-location";
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
+
 import {
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Alert,
+  Image,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 
 export default function IniciarRotaScreen() {
-  const [fotoCapturada] = useState(false);
-  const [gpsCapturado] = useState(false);
+  const [foto, setFoto] = useState<string | null>(null);
+  const fotoCapturada = !!foto;
+  const [motorista, setMotorista] = useState<any>(null);
+  const [caminhao, setCaminhao] = useState<any>(null);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [dataHoraGPS, setDataHoraGPS] = useState<string | null>(null);
+
+  const gpsCapturado = latitude !== null && longitude !== null;
+
+  useEffect(() => {
+    carregarDados();
+  }, []);
+
+  async function carregarDados() {
+    const motoristaSalvo = await obterMotorista();
+    const caminhaoSalvo = await obterCaminhao();
+
+    setMotorista(motoristaSalvo);
+    setCaminhao(caminhaoSalvo);
+  }
+  async function tirarFotoInicial() {
+    try {
+      const uri = await abrirCamera();
+
+      if (uri) {
+        setFoto(uri);
+      }
+    } catch {
+      Alert.alert("Erro", "Não foi possível abrir a câmera.");
+    }
+  }
+  async function capturarGPS() {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Permissão negada",
+          "É necessário permitir o acesso à localização.",
+        );
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+
+      setLatitude(location.coords.latitude);
+      setLongitude(location.coords.longitude);
+      setDataHoraGPS(new Date().toLocaleString("pt-BR"));
+    } catch {
+      Alert.alert("Erro", "Não foi possível obter a localização.");
+    }
+  }
+  async function iniciarRota() {
+    if (
+      !motorista ||
+      !caminhao ||
+      !foto ||
+      latitude === null ||
+      longitude === null ||
+      !dataHoraGPS
+    ) {
+      Alert.alert(
+        "Dados incompletos",
+        "Preencha todas as etapas antes de iniciar a rota.",
+      );
+      return;
+    }
+    const rotaEmAndamento = await obterRotaEmAndamento();
+
+    if (rotaEmAndamento) {
+      Alert.alert(
+        "Rota em andamento",
+        "Já existe uma rota em andamento. Finalize-a antes de iniciar uma nova.",
+      );
+
+      return;
+    }
+
+    const id = `VP-${Date.now()}`;
+
+    await salvarRota({
+      id,
+
+      motorista: motorista.nome,
+
+      placa: caminhao.placa,
+      modelo: caminhao.modelo,
+
+      dataHoraInicio: dataHoraGPS,
+
+      latitudeInicio: latitude,
+      longitudeInicio: longitude,
+
+      fotoInicio: foto,
+
+      status: "EM_ANDAMENTO",
+    });
+
+    router.replace("/rota-em-andamento");
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -26,12 +133,18 @@ export default function IniciarRotaScreen() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>👤 Motorista</Text>
-          <Text style={styles.cardValue}>Não informado</Text>
+          <Text style={styles.cardValue}>
+            {motorista?.nome || "Não informado"}
+          </Text>
         </View>
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>🚛 Caminhão</Text>
-          <Text style={styles.cardValue}>Não informado</Text>
+          <Text style={styles.cardValue}>
+            {caminhao
+              ? `${caminhao.modelo}\n${caminhao.placa}`
+              : "Não informado"}
+          </Text>
         </View>
 
         <View style={styles.card}>
@@ -46,7 +159,19 @@ export default function IniciarRotaScreen() {
             {fotoCapturada ? "✔ Foto capturada" : "✖ Foto pendente"}
           </Text>
 
-          <Pressable style={styles.secondaryButton}>
+          {foto && (
+            <Image
+              source={{ uri: foto }}
+              style={{
+                width: "100%",
+                height: 180,
+                borderRadius: 12,
+                marginBottom: 14,
+              }}
+            />
+          )}
+
+          <Pressable style={styles.secondaryButton} onPress={tirarFotoInicial}>
             <Text style={styles.secondaryButtonText}>TIRAR FOTO</Text>
           </Pressable>
         </View>
@@ -64,8 +189,17 @@ export default function IniciarRotaScreen() {
               ? "✔ Localização capturada"
               : "✖ Localização pendente"}
           </Text>
+          {gpsCapturado && (
+            <Text style={styles.cardValue}>
+              Latitude: {latitude?.toFixed(6)}
+              {"\n"}
+              Longitude: {longitude?.toFixed(6)}
+              {"\n\n"}
+              Data/Hora: {dataHoraGPS}
+            </Text>
+          )}
 
-          <Pressable style={styles.secondaryButton}>
+          <Pressable style={styles.secondaryButton} onPress={capturarGPS}>
             <Text style={styles.secondaryButtonText}>CAPTURAR GPS</Text>
           </Pressable>
         </View>
@@ -76,6 +210,7 @@ export default function IniciarRotaScreen() {
             !(fotoCapturada && gpsCapturado) && styles.buttonDisabled,
           ]}
           disabled={!fotoCapturada || !gpsCapturado}
+          onPress={iniciarRota}
         >
           <Text style={styles.buttonText}>INICIAR ROTA</Text>
         </Pressable>
