@@ -1,4 +1,5 @@
 import { abrirCamera } from "@/services/camera";
+import { gerarEvidencia } from "@/services/evidencia";
 import { obterRotaEmAndamento, salvarRota } from "@/services/rotas";
 import { obterCaminhao, obterMotorista } from "@/services/storage";
 import * as Location from "expo-location";
@@ -97,6 +98,16 @@ export default function IniciarRotaScreen() {
     }
 
     const id = `VP-${Date.now()}`;
+    const fotoProcessada = await gerarEvidencia({
+      foto,
+      dataHora: dataHoraGPS,
+      latitude,
+      longitude,
+      motorista: motorista.nome,
+      placa: caminhao.placa,
+      rotaId: id,
+      tipo: "INICIO",
+    });
 
     await salvarRota({
       id,
@@ -111,7 +122,7 @@ export default function IniciarRotaScreen() {
       latitudeInicio: latitude,
       longitudeInicio: longitude,
 
-      fotoInicio: foto,
+      fotoInicio: fotoProcessada,
 
       status: "EM_ANDAMENTO",
     });

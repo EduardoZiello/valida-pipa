@@ -1,7 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const CHAVE_ROTAS = "@valida_pipa_rotas";
-
+export interface Ocorrencia {
+  id: string;
+  dataHora: string;
+  latitude: number;
+  longitude: number;
+  foto: string;
+  observacao: string;
+}
 export interface Rota {
   id: string;
 
@@ -21,7 +28,7 @@ export interface Rota {
   latitudeFim?: number;
   longitudeFim?: number;
   fotoFim?: string;
-
+  ocorrencias?: Ocorrencia[];
   status: "EM_ANDAMENTO" | "FINALIZADA";
 }
 
@@ -62,7 +69,7 @@ export async function finalizarRota(
 
 export async function salvarRota(rota: Rota) {
   const rotas = await obterRotas();
-
+  rota.ocorrencias = [];
   rotas.unshift(rota);
 
   await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(rotas));
@@ -72,7 +79,30 @@ export async function obterRotaEmAndamento(): Promise<Rota | null> {
 
   return rotas.find((rota) => rota.status === "EM_ANDAMENTO") || null;
 }
+export async function salvarOcorrencia(rotaId: string, ocorrencia: Ocorrencia) {
+  const rotas = await obterRotas();
+
+  const novasRotas = rotas.map((rota) => {
+    if (rota.id !== rotaId) {
+      return rota;
+    }
+
+    return {
+      ...rota,
+      ocorrencias: [...(rota.ocorrencias ?? []), ocorrencia],
+    };
+  });
+
+  await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(novasRotas));
+}
 export async function limparRotas() {
   await AsyncStorage.removeItem("rotas");
 }
-console.log("ROTAS.TS ATUAL CARREGADO");
+console.log("ROTAS MODULE CARREGADO");
+console.log({
+  obterRotas,
+  salvarRota,
+  obterRotaEmAndamento,
+  finalizarRota,
+  salvarOcorrencia,
+});

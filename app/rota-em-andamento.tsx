@@ -1,8 +1,8 @@
 import { abrirCamera } from "@/services/camera";
 import { finalizarRota, obterRotaEmAndamento } from "@/services/rotas";
 import * as Location from "expo-location";
-import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +17,7 @@ import {
 
 export default function RotaEmAndamentoScreen() {
   const [rota, setRota] = useState<any>(null);
+  const [quantidadeOcorrencias, setQuantidadeOcorrencias] = useState(0);
   const [carregando, setCarregando] = useState(true);
   const [fotoFinal, setFotoFinal] = useState<string | null>(null);
 
@@ -32,11 +33,19 @@ export default function RotaEmAndamentoScreen() {
   useEffect(() => {
     carregarRota();
   }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      carregarRota();
+    }, []),
+  );
 
   async function carregarRota() {
     const rotaSalva = await obterRotaEmAndamento();
 
     setRota(rotaSalva);
+
+    setQuantidadeOcorrencias(rotaSalva?.ocorrencias?.length ?? 0);
+
     setCarregando(false);
   }
   async function tirarFotoFinal() {
@@ -150,6 +159,51 @@ export default function RotaEmAndamentoScreen() {
 
         <Image source={{ uri: rota.fotoInicio }} style={styles.foto} />
         <View style={styles.card}>
+          <Text style={styles.label}>⚠️ Ocorrências</Text>
+
+          {rota.ocorrencias?.length === 0 ? (
+            <Text style={styles.value}>Nenhuma ocorrência registrada.</Text>
+          ) : (
+            rota.ocorrencias?.map((ocorrencia: any, index: number) => (
+              <View
+                key={ocorrencia.id}
+                style={{
+                  marginTop: 12,
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#EEE",
+                  paddingBottom: 12,
+                }}
+              >
+                <Image
+                  source={{ uri: ocorrencia.foto }}
+                  style={{
+                    width: "100%",
+                    height: 180,
+                    borderRadius: 12,
+                    marginBottom: 10,
+                  }}
+                />
+
+                <Text style={styles.value}>
+                  {index + 1}. {ocorrencia.dataHora}
+                </Text>
+
+                <Text style={{ color: "#555", marginTop: 6 }}>
+                  📍 Latitude: {ocorrencia.latitude.toFixed(6)}
+                </Text>
+
+                <Text style={{ color: "#555" }}>
+                  📍 Longitude: {ocorrencia.longitude.toFixed(6)}
+                </Text>
+
+                <Text style={{ color: "#666", marginTop: 4 }}>
+                  {ocorrencia.observacao || "Sem observação"}
+                </Text>
+              </View>
+            ))
+          )}
+        </View>
+        <View style={styles.card}>
           <Text style={styles.label}>📷 Foto Final</Text>
 
           <Text
@@ -215,6 +269,14 @@ export default function RotaEmAndamentoScreen() {
           <Text style={styles.botaoTexto}>FINALIZAR ROTA</Text>
         </Pressable>
       </ScrollView>
+
+      <Pressable style={styles.fab} onPress={() => router.push("/ocorrencia")}>
+        <Text style={styles.fabBadge}>{quantidadeOcorrencias}</Text>
+
+        <Text style={styles.fabIcon}>⚠️</Text>
+
+        <Text style={styles.fabText}>OCORRÊNCIA</Text>
+      </Pressable>
     </SafeAreaView>
   );
 }
@@ -289,5 +351,43 @@ const styles = StyleSheet.create({
   semRota: {
     fontSize: 18,
     color: "#555",
+  },
+  fab: {
+    position: "absolute",
+    right: 20,
+    bottom: 30,
+    width: 95,
+    height: 95,
+    borderRadius: 48,
+    backgroundColor: "#F57C00",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+  },
+
+  fabIcon: {
+    fontSize: 28,
+  },
+
+  fabText: {
+    color: "#FFF",
+    fontWeight: "700",
+    fontSize: 10,
+    marginTop: 2,
+  },
+
+  fabBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#D32F2F",
+    color: "#FFF",
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    textAlign: "center",
+    textAlignVertical: "center",
+    fontWeight: "700",
+    overflow: "hidden",
   },
 });
