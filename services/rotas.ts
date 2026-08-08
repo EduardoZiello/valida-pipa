@@ -9,6 +9,11 @@ export interface Ocorrencia {
   foto: string;
   observacao: string;
 }
+export interface PontoTrajeto {
+  latitude: number;
+  longitude: number;
+  dataHora: string;
+}
 export interface Rota {
   id: string;
 
@@ -29,6 +34,9 @@ export interface Rota {
   longitudeFim?: number;
   fotoFim?: string;
   ocorrencias?: Ocorrencia[];
+
+  trajeto?: PontoTrajeto[];
+
   status: "EM_ANDAMENTO" | "FINALIZADA";
 }
 
@@ -70,6 +78,7 @@ export async function finalizarRota(
 export async function salvarRota(rota: Rota) {
   const rotas = await obterRotas();
   rota.ocorrencias = [];
+  rota.trajeto = [];
   rotas.unshift(rota);
 
   await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(rotas));
@@ -94,6 +103,35 @@ export async function salvarOcorrencia(rotaId: string, ocorrencia: Ocorrencia) {
   });
 
   await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(novasRotas));
+}
+export async function salvarPontoTrajeto(
+  rotaId: string,
+  latitude: number,
+  longitude: number,
+) {
+  const rotas = await obterRotas();
+
+  const novasRotas = rotas.map((rota) => {
+    if (rota.id !== rotaId) {
+      return rota;
+    }
+
+    return {
+      ...rota,
+      trajeto: [
+        ...(rota.trajeto ?? []),
+        {
+          latitude,
+          longitude,
+          dataHora: new Date().toLocaleString("pt-BR"),
+        },
+      ],
+    };
+  });
+
+  await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(novasRotas));
+
+  console.log("TRAJETO - ponto salvo:", rotaId);
 }
 export async function limparRotas() {
   await AsyncStorage.removeItem("rotas");

@@ -154,6 +154,41 @@ export default function DetalhesRotaScreen() {
             <Text style={styles.semFoto}>Nenhuma ocorrência registrada.</Text>
           )}
         </View>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>🗺️ Percurso Registrado</Text>
+
+          <Text style={styles.percursoResumo}>
+            {rota?.trajeto?.length ?? 0} ponto(s) registrados
+          </Text>
+
+          {rota?.trajeto?.length ? (
+            rota.trajeto.map((ponto, index) => (
+              <View
+                key={`${ponto.dataHora}-${index}`}
+                style={styles.pontoTrajeto}
+              >
+                <Text style={styles.pontoTitulo}>Ponto #{index + 1}</Text>
+
+                <Text style={styles.infoLabel}>Latitude</Text>
+                <Text style={styles.infoValor}>
+                  {ponto.latitude.toFixed(6)}
+                </Text>
+
+                <Text style={styles.infoLabel}>Longitude</Text>
+                <Text style={styles.infoValor}>
+                  {ponto.longitude.toFixed(6)}
+                </Text>
+
+                <Text style={styles.infoLabel}>Data/Hora</Text>
+                <Text style={styles.infoValor}>{ponto.dataHora}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.semFoto}>
+              Nenhum ponto de percurso registrado.
+            </Text>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -255,6 +290,25 @@ const styles = StyleSheet.create({
 
   ocorrenciaTitulo: {
     fontSize: 18,
+    fontWeight: "700",
+    color: "#163A5F",
+    marginBottom: 12,
+  },
+  percursoResumo: {
+    marginTop: 4,
+    fontSize: 15,
+    color: "#6B7280",
+  },
+
+  pontoTrajeto: {
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+
+  pontoTitulo: {
+    fontSize: 17,
     fontWeight: "700",
     color: "#163A5F",
     marginBottom: 12,

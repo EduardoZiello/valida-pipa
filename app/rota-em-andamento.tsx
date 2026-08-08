@@ -1,4 +1,5 @@
 import { abrirCamera } from "@/services/camera";
+import { pararRastreamento } from "@/services/rastreamento";
 import { finalizarRota, obterRotaEmAndamento } from "@/services/rotas";
 import * as Location from "expo-location";
 import { router, useFocusEffect } from "expo-router";
@@ -109,7 +110,7 @@ export default function RotaEmAndamentoScreen() {
             longitudeFim: longitudeFinal,
             dataHoraFim: dataHoraFinal,
           });
-
+          pararRastreamento();
           Alert.alert("Sucesso", "Rota finalizada com sucesso!");
 
           router.replace("/");

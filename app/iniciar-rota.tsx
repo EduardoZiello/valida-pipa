@@ -1,5 +1,6 @@
 import { abrirCamera } from "@/services/camera";
 import { gerarEvidencia } from "@/services/evidencia";
+import { iniciarRastreamento } from "@/services/rastreamento";
 import { obterRotaEmAndamento, salvarRota } from "@/services/rotas";
 import { obterCaminhao, obterMotorista } from "@/services/storage";
 import * as Location from "expo-location";
@@ -126,7 +127,9 @@ export default function IniciarRotaScreen() {
 
       status: "EM_ANDAMENTO",
     });
-
+    console.log("6 - Rota salva. Iniciando rastreamento:", id);
+    await iniciarRastreamento(id);
+    console.log("7 - Rastreamento iniciado. Indo para rota em andamento.");
     router.replace("/rota-em-andamento");
   }
 
