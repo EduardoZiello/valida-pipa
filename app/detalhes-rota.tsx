@@ -1,12 +1,20 @@
 import { obterRotas, Rota } from "@/services/rotas";
 import { useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+
+import MapView, { Marker, Polyline } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function DetalhesRotaScreen() {
   const { id } = useLocalSearchParams();
   const [rota, setRota] = useState<Rota | null>(null);
+  const mapaRef = useRef<MapView | null>(null);
+  const coordenadasTrajeto =
+    rota?.trajeto?.map((ponto) => ({
+      latitude: ponto.latitude,
+      longitude: ponto.longitude,
+    })) ?? [];
 
   useEffect(() => {
     carregarRota();
@@ -156,6 +164,72 @@ export default function DetalhesRotaScreen() {
         </View>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>🗺️ Percurso Registrado</Text>
+          {rota?.trajeto && rota.trajeto.length > 0 && (
+            <MapView
+              ref={mapaRef}
+              style={styles.mapa}
+              onMapReady={() => {
+                if (coordenadasTrajeto.length > 0) {
+                  mapaRef.current?.fitToCoordinates(coordenadasTrajeto, {
+                    edgePadding: {
+                      top: 40,
+                      right: 40,
+                      bottom: 40,
+                      left: 40,
+                    },
+                    animated: false,
+                  });
+                }
+              }}
+            >
+              <Polyline
+                coordinates={rota.trajeto.map((ponto) => ({
+                  latitude: ponto.latitude,
+                  longitude: ponto.longitude,
+                }))}
+                strokeWidth={5}
+              />
+
+              {/* Marcador de início */}
+              <Marker
+                coordinate={{
+                  latitude: rota.latitudeInicio,
+                  longitude: rota.longitudeInicio,
+                }}
+                title="Início da rota"
+                description={rota.dataHoraInicio}
+                pinColor="#22C55E"
+              />
+
+              {/* Marcador de final */}
+              {rota.latitudeFim !== undefined &&
+                rota.longitudeFim !== undefined && (
+                  <Marker
+                    coordinate={{
+                      latitude: rota.latitudeFim,
+                      longitude: rota.longitudeFim,
+                    }}
+                    title="Final da rota"
+                    description={rota.dataHoraFim}
+                    pinColor="#EF4444"
+                  />
+                )}
+
+              {/* Marcadores de ocorrências */}
+              {rota.ocorrencias?.map((ocorrencia, index) => (
+                <Marker
+                  key={ocorrencia.id}
+                  coordinate={{
+                    latitude: ocorrencia.latitude,
+                    longitude: ocorrencia.longitude,
+                  }}
+                  title={`Ocorrência #${index + 1}`}
+                  description={ocorrencia.observacao || "Sem observação"}
+                  pinColor="#F59E0B"
+                />
+              ))}
+            </MapView>
+          )}
 
           <Text style={styles.percursoResumo}>
             {rota?.trajeto?.length ?? 0} ponto(s) registrados
@@ -312,5 +386,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#163A5F",
     marginBottom: 12,
+  },
+  mapa: {
+    width: "100%",
+    height: 280,
+    borderRadius: 14,
+    marginTop: 15,
+    overflow: "hidden",
   },
 });
