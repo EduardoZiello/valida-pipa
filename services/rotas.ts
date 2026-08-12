@@ -130,17 +130,7 @@ export async function salvarPontoTrajeto(
   });
 
   await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(novasRotas));
-
-  console.log("TRAJETO - ponto salvo:", rotaId);
 }
 export async function limparRotas() {
   await AsyncStorage.removeItem("rotas");
 }
-console.log("ROTAS MODULE CARREGADO");
-console.log({
-  obterRotas,
-  salvarRota,
-  obterRotaEmAndamento,
-  finalizarRota,
-  salvarOcorrencia,
-});

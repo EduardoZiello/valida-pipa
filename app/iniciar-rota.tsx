@@ -127,9 +127,9 @@ export default function IniciarRotaScreen() {
 
       status: "EM_ANDAMENTO",
     });
-    console.log("6 - Rota salva. Iniciando rastreamento:", id);
+
     await iniciarRastreamento(id);
-    console.log("7 - Rastreamento iniciado. Indo para rota em andamento.");
+
     router.replace("/rota-em-andamento");
   }
 

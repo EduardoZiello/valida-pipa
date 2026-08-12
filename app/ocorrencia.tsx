@@ -13,7 +13,6 @@ import {
   Text,
   TextInput,
 } from "react-native";
-console.log("RotasService:", RotasService);
 
 export default function OcorrenciaScreen() {
   const [foto, setFoto] = useState<string | null>(null);
@@ -45,8 +44,6 @@ export default function OcorrenciaScreen() {
 
   async function salvarOcorrenciaNaRota() {
     try {
-      console.log("1 - Iniciou");
-
       if (!foto || latitude === null || longitude === null) {
         Alert.alert(
           "Dados incompletos",
@@ -55,18 +52,12 @@ export default function OcorrenciaScreen() {
         return;
       }
 
-      console.log("2 - Dados OK");
-
       const rota = await RotasService.obterRotaEmAndamento();
-
-      console.log("3 - Rota:", rota);
 
       if (!rota) {
         Alert.alert("Erro", "Nenhuma rota em andamento.");
         return;
       }
-
-      console.log("4 - Antes de salvar");
 
       await RotasService.salvarOcorrencia(rota.id, {
         id: Date.now().toString(),
@@ -76,8 +67,6 @@ export default function OcorrenciaScreen() {
         longitude,
         observacao,
       });
-
-      console.log("5 - Salvou");
 
       Alert.alert("Sucesso", "Ocorrência registrada!");
 
