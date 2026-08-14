@@ -128,7 +128,7 @@ export default function IniciarRotaScreen() {
       status: "EM_ANDAMENTO",
     });
 
-    await iniciarRastreamento(id);
+    await iniciarRastreamento();
 
     router.replace("/rota-em-andamento");
   }

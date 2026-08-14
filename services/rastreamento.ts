@@ -1,40 +1,70 @@
 import * as Location from "expo-location";
 
-import { salvarPontoTrajeto } from "@/services/rotas";
+import { RASTREAMENTO_TASK } from "@/services/rastreamentoTask";
 
-let subscription: Location.LocationSubscription | null = null;
+let rastreamentoAtivo = false;
 
-export async function iniciarRastreamento(rotaId: string) {
+export async function iniciarRastreamento() {
   try {
-    if (subscription) {
+    if (rastreamentoAtivo) {
       return;
     }
 
-    const { status } = await Location.requestForegroundPermissionsAsync();
+    const foreground = await Location.requestForegroundPermissionsAsync();
 
-    if (status !== "granted") {
+    if (foreground.status !== "granted") {
+      console.log("RASTREAMENTO - Permissão de localização negada.");
       return;
     }
 
-    subscription = await Location.watchPositionAsync(
-      {
+    const background = await Location.requestBackgroundPermissionsAsync();
+
+    if (background.status !== "granted") {
+      console.log(
+        "RASTREAMENTO - Permissão de localização em segundo plano negada.",
+      );
+      return;
+    }
+
+    const jaEstaRodando =
+      await Location.hasStartedLocationUpdatesAsync(RASTREAMENTO_TASK);
+
+    if (!jaEstaRodando) {
+      await Location.startLocationUpdatesAsync(RASTREAMENTO_TASK, {
         accuracy: Location.Accuracy.High,
-        timeInterval: 30000,
-        distanceInterval: 20,
-      },
-      async (location) => {
-        const { latitude, longitude } = location.coords;
+        timeInterval: 10000,
+        distanceInterval: 10,
+        pausesUpdatesAutomatically: false,
+        showsBackgroundLocationIndicator: true,
+        foregroundService: {
+          notificationTitle: "Valida Pipa",
+          notificationBody: "A rota está sendo registrada.",
+          notificationColor: "#1976D2",
+        },
+      });
+    }
 
-        await salvarPontoTrajeto(rotaId, latitude, longitude);
-      },
-    );
+    rastreamentoAtivo = true;
+
+    console.log("RASTREAMENTO - Iniciado com sucesso.");
   } catch (error) {
     console.error("RASTREAMENTO - ERRO:", error);
   }
 }
-export function pararRastreamento() {
-  if (subscription) {
-    subscription.remove();
-    subscription = null;
+
+export async function pararRastreamento() {
+  try {
+    const estaRodando =
+      await Location.hasStartedLocationUpdatesAsync(RASTREAMENTO_TASK);
+
+    if (estaRodando) {
+      await Location.stopLocationUpdatesAsync(RASTREAMENTO_TASK);
+    }
+
+    rastreamentoAtivo = false;
+
+    console.log("RASTREAMENTO - Finalizado.");
+  } catch (error) {
+    console.error("RASTREAMENTO - ERRO AO PARAR:", error);
   }
 }

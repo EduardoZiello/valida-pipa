@@ -19,6 +19,7 @@ import {
 export default function RotaEmAndamentoScreen() {
   const [rota, setRota] = useState<any>(null);
   const [quantidadeOcorrencias, setQuantidadeOcorrencias] = useState(0);
+  const [quantidadePontos, setQuantidadePontos] = useState(0);
   const [carregando, setCarregando] = useState(true);
   const [fotoFinal, setFotoFinal] = useState<string | null>(null);
 
@@ -39,6 +40,13 @@ export default function RotaEmAndamentoScreen() {
       carregarRota();
     }, []),
   );
+  useEffect(() => {
+    const intervalo = setInterval(() => {
+      carregarRota();
+    }, 5000);
+
+    return () => clearInterval(intervalo);
+  }, []);
 
   async function carregarRota() {
     const rotaSalva = await obterRotaEmAndamento();
@@ -46,6 +54,7 @@ export default function RotaEmAndamentoScreen() {
     setRota(rotaSalva);
 
     setQuantidadeOcorrencias(rotaSalva?.ocorrencias?.length ?? 0);
+    setQuantidadePontos(rotaSalva?.trajeto?.length ?? 0);
 
     setCarregando(false);
   }
@@ -157,7 +166,32 @@ export default function RotaEmAndamentoScreen() {
           <Text style={styles.label}>🕒 Início</Text>
           <Text style={styles.value}>{rota.dataHoraInicio}</Text>
         </View>
+        <View style={styles.rastreamentoCard}>
+          <View style={styles.rastreamentoTitulo}>
+            <View style={styles.indicadorAtivo} />
 
+            <Text style={styles.rastreamentoTituloTexto}>
+              Rastreamento GPS ativo
+            </Text>
+          </View>
+
+          <Text style={styles.rastreamentoDescricao}>
+            O aplicativo está registrando o percurso desta rota.
+          </Text>
+
+          <View style={styles.rastreamentoInfo}>
+            <Text style={styles.rastreamentoPontos}>
+              📍 {quantidadePontos} ponto(s) capturado(s)
+            </Text>
+
+            {quantidadePontos > 0 && rota.trajeto?.length > 0 && (
+              <Text style={styles.rastreamentoUltimoPonto}>
+                🕒 Último registro:{" "}
+                {rota.trajeto[rota.trajeto.length - 1].dataHora}
+              </Text>
+            )}
+          </View>
+        </View>
         <Image source={{ uri: rota.fotoInicio }} style={styles.foto} />
         <View style={styles.card}>
           <Text style={styles.label}>⚠️ Ocorrências</Text>
@@ -390,5 +424,57 @@ const styles = StyleSheet.create({
     textAlignVertical: "center",
     fontWeight: "700",
     overflow: "hidden",
+  },
+  rastreamentoCard: {
+    backgroundColor: "#E8F5E9",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#A5D6A7",
+  },
+
+  rastreamentoTitulo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  indicadorAtivo: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#2E7D32",
+    marginRight: 10,
+  },
+
+  rastreamentoTituloTexto: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1B5E20",
+  },
+
+  rastreamentoDescricao: {
+    marginTop: 10,
+    color: "#426B45",
+    fontSize: 14,
+  },
+
+  rastreamentoInfo: {
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#C8E6C9",
+  },
+
+  rastreamentoPontos: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1B5E20",
+  },
+
+  rastreamentoUltimoPonto: {
+    marginTop: 6,
+    fontSize: 13,
+    color: "#557A58",
   },
 });
