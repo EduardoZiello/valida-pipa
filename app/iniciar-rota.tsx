@@ -73,6 +73,34 @@ export default function IniciarRotaScreen() {
     }
   }
   async function iniciarRota() {
+    const faltando: string[] = [];
+
+    if (!motorista) {
+      faltando.push("Cadastro do motorista");
+    }
+
+    if (!caminhao) {
+      faltando.push("Cadastro do caminhão");
+    }
+
+    if (!foto) {
+      faltando.push("Foto inicial");
+    }
+
+    if (latitude === null || longitude === null || !dataHoraGPS) {
+      faltando.push("Localização GPS");
+    }
+
+    if (faltando.length > 0) {
+      Alert.alert(
+        "Não é possível iniciar a rota",
+        `Verifique os seguintes itens:\n\n${faltando
+          .map((item) => `• ${item}`)
+          .join("\n")}`,
+      );
+
+      return;
+    }
     if (
       !motorista ||
       !caminhao ||
@@ -81,10 +109,6 @@ export default function IniciarRotaScreen() {
       longitude === null ||
       !dataHoraGPS
     ) {
-      Alert.alert(
-        "Dados incompletos",
-        "Preencha todas as etapas antes de iniciar a rota.",
-      );
       return;
     }
     const rotaEmAndamento = await obterRotaEmAndamento();

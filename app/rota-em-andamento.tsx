@@ -1,4 +1,5 @@
 import { abrirCamera } from "@/services/camera";
+import { gerarEvidencia } from "@/services/evidencia";
 import { pararRastreamento } from "@/services/rastreamento";
 import { finalizarRota, obterRotaEmAndamento } from "@/services/rotas";
 import * as Location from "expo-location";
@@ -113,13 +114,26 @@ export default function RotaEmAndamentoScreen() {
       {
         text: "Finalizar",
         onPress: async () => {
+          const fotoProcessada = await gerarEvidencia({
+            foto: fotoFinal,
+            dataHora: dataHoraFinal,
+            latitude: latitudeFinal,
+            longitude: longitudeFinal,
+            motorista: rota.motorista,
+            placa: rota.placa,
+            rotaId: rota.id,
+            tipo: "FINAL",
+          });
+
           await finalizarRota(rota.id, {
-            fotoFim: fotoFinal,
+            fotoFim: fotoProcessada,
             latitudeFim: latitudeFinal,
             longitudeFim: longitudeFinal,
             dataHoraFim: dataHoraFinal,
           });
+
           pararRastreamento();
+
           Alert.alert("Sucesso", "Rota finalizada com sucesso!");
 
           router.replace("/");

@@ -8,7 +8,14 @@ import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useEffect, useRef } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+
+import EvidenciaGerador, {
+  EvidenciaGeradorRef,
+} from "@/components/EvidenciaGerador";
+
+import { registrarGeradorEvidencia } from "@/services/evidencia";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -16,6 +23,18 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+
+  const evidenciaRef = useRef<EvidenciaGeradorRef>(null);
+
+  useEffect(() => {
+    registrarGeradorEvidencia(async (dados) => {
+      if (!evidenciaRef.current) {
+        throw new Error("Gerador de evidência não está disponível.");
+      }
+
+      return evidenciaRef.current.gerar(dados);
+    });
+  }, []);
 
   return (
     <SafeAreaProvider>
@@ -32,6 +51,7 @@ export default function RootLayout() {
 
         <StatusBar style="auto" />
       </ThemeProvider>
+      <EvidenciaGerador ref={evidenciaRef} />
     </SafeAreaProvider>
   );
 }

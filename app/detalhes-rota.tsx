@@ -1,85 +1,147 @@
 import { obterRotas, Rota } from "@/services/rotas";
 import { useLocalSearchParams } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function DetalhesRotaScreen() {
   const { id } = useLocalSearchParams();
+
   const [rota, setRota] = useState<Rota | null>(null);
+  const [carregando, setCarregando] = useState(true);
+
   const mapaRef = useRef<MapView | null>(null);
-  const coordenadasTrajeto =
-    rota?.trajeto?.map((ponto) => ({
-      latitude: ponto.latitude,
-      longitude: ponto.longitude,
-    })) ?? [];
 
   useEffect(() => {
     carregarRota();
   }, []);
 
   async function carregarRota() {
-    const lista = await obterRotas();
+    try {
+      setCarregando(true);
 
-    const rotaEncontrada = lista.find((r) => r.id === id);
+      const lista = await obterRotas();
 
-    if (rotaEncontrada) {
-      setRota(rotaEncontrada);
+      const rotaEncontrada = lista.find((r) => r.id === id);
+
+      if (rotaEncontrada) {
+        setRota(rotaEncontrada);
+      }
+    } catch (error) {
+      console.error("DETALHES DA ROTA - ERRO:", error);
+    } finally {
+      setCarregando(false);
     }
   }
+
+  const coordenadasTrajeto = useMemo(() => {
+    return (
+      rota?.trajeto?.map((ponto) => ({
+        latitude: ponto.latitude,
+        longitude: ponto.longitude,
+      })) ?? []
+    );
+  }, [rota?.trajeto]);
+
+  if (carregando) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#1976D2" />
+
+          <Text style={styles.loadingTitle}>
+            Carregando detalhes da rota...
+          </Text>
+
+          <Text style={styles.loadingSubtitle}>
+            Preparando o percurso registrado.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!rota) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingTitle}>Rota não encontrada</Text>
+
+          <Text style={styles.loadingSubtitle}>
+            Não foi possível localizar os dados desta rota.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.title}>Detalhes da Rota</Text>
 
-        {rota && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitulo}>📋 Dados da Rota</Text>
+        {/* DADOS DA ROTA */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitulo}>📋 Dados da Rota</Text>
 
-            <View style={styles.linha}>
-              <Text style={styles.label}>👤 Motorista</Text>
-              <Text style={styles.valor}>{rota.motorista}</Text>
-            </View>
-
-            <View style={styles.linha}>
-              <Text style={styles.label}>🚛 Placa</Text>
-              <Text style={styles.valor}>{rota.placa}</Text>
-            </View>
-
-            <View style={styles.linha}>
-              <Text style={styles.label}>🆔 ID</Text>
-              <Text style={styles.valor}>VP-{rota.id.slice(-6)}</Text>
-            </View>
-
-            <View style={styles.linha}>
-              <Text style={styles.label}>📅 Início</Text>
-              <Text style={styles.valor}>{rota.dataHoraInicio}</Text>
-            </View>
-
-            <View style={styles.linha}>
-              <Text style={styles.label}>✅ Status</Text>
-              <Text
-                style={{
-                  color: rota.status === "FINALIZADA" ? "#22C55E" : "#1976D2",
-                  fontWeight: "700",
-                }}
-              >
-                {rota.status}
-              </Text>
-            </View>
+          <View style={styles.linha}>
+            <Text style={styles.label}>👤 Motorista</Text>
+            <Text style={styles.valor}>{rota.motorista}</Text>
           </View>
-        )}
+
+          <View style={styles.linha}>
+            <Text style={styles.label}>🚛 Placa</Text>
+            <Text style={styles.valor}>{rota.placa}</Text>
+          </View>
+
+          <View style={styles.linha}>
+            <Text style={styles.label}>🆔 ID</Text>
+            <Text style={styles.valor}>VP-{rota.id.slice(-6)}</Text>
+          </View>
+
+          <View style={styles.linha}>
+            <Text style={styles.label}>📅 Início</Text>
+            <Text style={styles.valor}>{rota.dataHoraInicio}</Text>
+          </View>
+
+          <View style={styles.linha}>
+            <Text style={styles.label}>✅ Status</Text>
+
+            <Text
+              style={{
+                color: rota.status === "FINALIZADA" ? "#22C55E" : "#1976D2",
+                fontWeight: "700",
+              }}
+            >
+              {rota.status}
+            </Text>
+          </View>
+        </View>
+
+        {/* FOTO INICIAL */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>📷 Foto Inicial</Text>
 
-          {rota?.fotoInicio ? (
+          {rota.fotoInicio ? (
             <Image source={{ uri: rota.fotoInicio }} style={styles.foto} />
           ) : (
             <Text style={styles.semFoto}>Nenhuma foto encontrada.</Text>
           )}
         </View>
+
+        {/* LOCALIZAÇÃO INICIAL */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>📍 Localização Inicial</Text>
 
@@ -87,7 +149,7 @@ export default function DetalhesRotaScreen() {
             <Text style={styles.infoLabel}>Latitude</Text>
 
             <Text style={styles.infoValor}>
-              {rota?.latitudeInicio?.toFixed(6)}
+              {rota.latitudeInicio.toFixed(6)}
             </Text>
           </View>
 
@@ -95,19 +157,23 @@ export default function DetalhesRotaScreen() {
             <Text style={styles.infoLabel}>Longitude</Text>
 
             <Text style={styles.infoValor}>
-              {rota?.longitudeInicio?.toFixed(6)}
+              {rota.longitudeInicio.toFixed(6)}
             </Text>
           </View>
         </View>
+
+        {/* FOTO FINAL */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>📷 Foto Final</Text>
 
-          {rota?.fotoFim ? (
+          {rota.fotoFim ? (
             <Image source={{ uri: rota.fotoFim }} style={styles.foto} />
           ) : (
             <Text style={styles.semFoto}>Rota ainda não foi finalizada.</Text>
           )}
         </View>
+
+        {/* LOCALIZAÇÃO FINAL */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>📍 Localização Final</Text>
 
@@ -115,7 +181,9 @@ export default function DetalhesRotaScreen() {
             <Text style={styles.infoLabel}>Latitude</Text>
 
             <Text style={styles.infoValor}>
-              {rota?.latitudeFim?.toFixed(6)}
+              {rota.latitudeFim !== undefined
+                ? rota.latitudeFim.toFixed(6)
+                : "Não disponível"}
             </Text>
           </View>
 
@@ -123,15 +191,19 @@ export default function DetalhesRotaScreen() {
             <Text style={styles.infoLabel}>Longitude</Text>
 
             <Text style={styles.infoValor}>
-              {rota?.longitudeFim?.toFixed(6)}
+              {rota.longitudeFim !== undefined
+                ? rota.longitudeFim.toFixed(6)
+                : "Não disponível"}
             </Text>
           </View>
         </View>
+
+        {/* OCORRÊNCIAS */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>⚠️ Ocorrências</Text>
 
-          {rota?.ocorrencias?.length ? (
-            rota.ocorrencias.map((ocorrencia: any, index: number) => (
+          {rota.ocorrencias?.length ? (
+            rota.ocorrencias.map((ocorrencia, index) => (
               <View key={ocorrencia.id} style={styles.ocorrenciaItem}>
                 <Text style={styles.ocorrenciaTitulo}>
                   Ocorrência #{index + 1}
@@ -140,21 +212,25 @@ export default function DetalhesRotaScreen() {
                 <Image source={{ uri: ocorrencia.foto }} style={styles.foto} />
 
                 <Text style={styles.infoLabel}>Observação</Text>
+
                 <Text style={styles.infoValor}>
                   {ocorrencia.observacao || "Sem observação"}
                 </Text>
 
                 <Text style={styles.infoLabel}>Data</Text>
+
                 <Text style={styles.infoValor}>{ocorrencia.dataHora}</Text>
 
                 <Text style={styles.infoLabel}>Latitude</Text>
+
                 <Text style={styles.infoValor}>
-                  {ocorrencia.latitude?.toFixed(6)}
+                  {ocorrencia.latitude.toFixed(6)}
                 </Text>
 
                 <Text style={styles.infoLabel}>Longitude</Text>
+
                 <Text style={styles.infoValor}>
-                  {ocorrencia.longitude?.toFixed(6)}
+                  {ocorrencia.longitude.toFixed(6)}
                 </Text>
               </View>
             ))
@@ -162,9 +238,40 @@ export default function DetalhesRotaScreen() {
             <Text style={styles.semFoto}>Nenhuma ocorrência registrada.</Text>
           )}
         </View>
+
+        {/* PERCURSO */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>🗺️ Percurso Registrado</Text>
-          {rota?.trajeto && rota.trajeto.length > 0 && (
+
+          <View style={styles.percursoResumoContainer}>
+            <View style={styles.percursoResumoItem}>
+              <Text style={styles.percursoNumero}>
+                {rota.distanciaPercorridaKm !== undefined
+                  ? `${rota.distanciaPercorridaKm.toFixed(2)} km`
+                  : "--"}
+              </Text>
+
+              <Text style={styles.percursoLabel}>distância percorrida</Text>
+            </View>
+
+            <View style={styles.percursoResumoItem}>
+              <Text style={styles.percursoNumero}>
+                {rota.trajeto?.length ?? 0}
+              </Text>
+
+              <Text style={styles.percursoLabel}>pontos capturados</Text>
+            </View>
+
+            <View style={styles.statusPercurso}>
+              <View style={styles.statusDot} />
+
+              <Text style={styles.statusPercursoTexto}>
+                Percurso registrado
+              </Text>
+            </View>
+          </View>
+
+          {coordenadasTrajeto.length > 0 ? (
             <MapView
               ref={mapaRef}
               style={styles.mapa}
@@ -182,15 +289,9 @@ export default function DetalhesRotaScreen() {
                 }
               }}
             >
-              <Polyline
-                coordinates={rota.trajeto.map((ponto) => ({
-                  latitude: ponto.latitude,
-                  longitude: ponto.longitude,
-                }))}
-                strokeWidth={5}
-              />
+              <Polyline coordinates={coordenadasTrajeto} strokeWidth={5} />
 
-              {/* Marcador de início */}
+              {/* INÍCIO */}
               <Marker
                 coordinate={{
                   latitude: rota.latitudeInicio,
@@ -201,7 +302,7 @@ export default function DetalhesRotaScreen() {
                 pinColor="#22C55E"
               />
 
-              {/* Marcador de final */}
+              {/* FINAL */}
               {rota.latitudeFim !== undefined &&
                 rota.longitudeFim !== undefined && (
                   <Marker
@@ -215,7 +316,7 @@ export default function DetalhesRotaScreen() {
                   />
                 )}
 
-              {/* Marcadores de ocorrências */}
+              {/* OCORRÊNCIAS */}
               {rota.ocorrencias?.map((ocorrencia, index) => (
                 <Marker
                   key={ocorrencia.id}
@@ -229,39 +330,18 @@ export default function DetalhesRotaScreen() {
                 />
               ))}
             </MapView>
-          )}
-
-          <Text style={styles.percursoResumo}>
-            {rota?.trajeto?.length ?? 0} ponto(s) registrados
-          </Text>
-
-          {rota?.trajeto?.length ? (
-            rota.trajeto.map((ponto, index) => (
-              <View
-                key={`${ponto.dataHora}-${index}`}
-                style={styles.pontoTrajeto}
-              >
-                <Text style={styles.pontoTitulo}>Ponto #{index + 1}</Text>
-
-                <Text style={styles.infoLabel}>Latitude</Text>
-                <Text style={styles.infoValor}>
-                  {ponto.latitude.toFixed(6)}
-                </Text>
-
-                <Text style={styles.infoLabel}>Longitude</Text>
-                <Text style={styles.infoValor}>
-                  {ponto.longitude.toFixed(6)}
-                </Text>
-
-                <Text style={styles.infoLabel}>Data/Hora</Text>
-                <Text style={styles.infoValor}>{ponto.dataHora}</Text>
-              </View>
-            ))
           ) : (
-            <Text style={styles.semFoto}>
-              Nenhum ponto de percurso registrado.
-            </Text>
+            <View style={styles.semPercurso}>
+              <Text style={styles.semPercursoTexto}>
+                Nenhum ponto de percurso registrado.
+              </Text>
+            </View>
           )}
+
+          <Text style={styles.infoMapa}>
+            O percurso acima representa os pontos de localização registrados
+            durante a rota.
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -276,6 +356,29 @@ const styles = StyleSheet.create({
 
   content: {
     padding: 20,
+    paddingBottom: 40,
+  },
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 30,
+  },
+
+  loadingTitle: {
+    marginTop: 18,
+    fontSize: 19,
+    fontWeight: "700",
+    color: "#163A5F",
+    textAlign: "center",
+  },
+
+  loadingSubtitle: {
+    marginTop: 8,
+    fontSize: 15,
+    color: "#6B7280",
+    textAlign: "center",
   },
 
   title: {
@@ -285,6 +388,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 20,
   },
+
   card: {
     backgroundColor: "#FFF",
     borderRadius: 18,
@@ -299,6 +403,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#163A5F",
     marginBottom: 18,
+  },
+
+  cardTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#163A5F",
   },
 
   linha: {
@@ -317,11 +427,6 @@ const styles = StyleSheet.create({
     color: "#163A5F",
   },
 
-  subtitle: {
-    marginTop: 10,
-    textAlign: "center",
-    color: "#6B7280",
-  },
   foto: {
     width: "100%",
     height: 260,
@@ -335,11 +440,6 @@ const styles = StyleSheet.create({
     color: "#6B7280",
   },
 
-  cardTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#163A5F",
-  },
   infoLinha: {
     marginTop: 16,
   },
@@ -347,6 +447,7 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 15,
     color: "#6B7280",
+    marginTop: 8,
   },
 
   infoValor: {
@@ -355,6 +456,7 @@ const styles = StyleSheet.create({
     color: "#163A5F",
     marginTop: 4,
   },
+
   ocorrenciaItem: {
     marginTop: 20,
     paddingTop: 20,
@@ -368,30 +470,77 @@ const styles = StyleSheet.create({
     color: "#163A5F",
     marginBottom: 12,
   },
-  percursoResumo: {
-    marginTop: 4,
-    fontSize: 15,
-    color: "#6B7280",
-  },
 
-  pontoTrajeto: {
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-  },
-
-  pontoTitulo: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#163A5F",
-    marginBottom: 12,
-  },
   mapa: {
     width: "100%",
     height: 280,
     borderRadius: 14,
-    marginTop: 15,
+    marginTop: 18,
     overflow: "hidden",
+  },
+
+  percursoResumoContainer: {
+    marginTop: 18,
+    padding: 16,
+    backgroundColor: "#F5FAFF",
+    borderRadius: 14,
+  },
+
+  percursoResumoItem: {
+    alignItems: "center",
+  },
+
+  percursoNumero: {
+    fontSize: 30,
+    fontWeight: "800",
+    color: "#1976D2",
+  },
+
+  percursoLabel: {
+    marginTop: 2,
+    fontSize: 14,
+    color: "#6B7280",
+  },
+
+  statusPercurso: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 12,
+  },
+
+  statusDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: "#22C55E",
+    marginRight: 7,
+  },
+
+  statusPercursoTexto: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2E7D32",
+  },
+
+  semPercurso: {
+    height: 180,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F5F7FA",
+    borderRadius: 14,
+    marginTop: 18,
+  },
+
+  semPercursoTexto: {
+    color: "#6B7280",
+    fontSize: 15,
+  },
+
+  infoMapa: {
+    marginTop: 12,
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#6B7280",
   },
 });
