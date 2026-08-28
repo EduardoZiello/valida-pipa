@@ -17,6 +17,7 @@ export interface PontoTrajeto {
   latitude: number;
   longitude: number;
   dataHora: string;
+  accuracy?: number | null;
 }
 export interface Rota {
   id: string;
@@ -102,9 +103,8 @@ function calcularDistanciaPercorrida(
 
     // Ignora pequenas oscilações do GPS
     // sem deixar de registrar o ponto no trajeto.
-    if (distancia >= 0.015) {
+    if (distancia >= 0.025) {
       distanciaTotalKm += distancia;
-
       latitudeAnterior = ponto.latitude;
       longitudeAnterior = ponto.longitude;
     }
@@ -117,7 +117,7 @@ function calcularDistanciaPercorrida(
     longitudeFinal,
   );
 
-  if (distanciaFinal >= 0.015) {
+  if (distanciaFinal >= 0.025) {
     distanciaTotalKm += distanciaFinal;
   }
 
@@ -193,6 +193,11 @@ export async function obterRotaEmAndamento(): Promise<Rota | null> {
 
   return rotas.find((rota) => rota.status === "EM_ANDAMENTO") || null;
 }
+export async function existeRotaEmAndamento(): Promise<boolean> {
+  const rota = await obterRotaEmAndamento();
+
+  return rota !== null;
+}
 export async function salvarOcorrencia(rotaId: string, ocorrencia: Ocorrencia) {
   const rotas = await obterRotas();
 
@@ -213,6 +218,7 @@ export async function salvarPontoTrajeto(
   rotaId: string,
   latitude: number,
   longitude: number,
+  accuracy?: number | null,
 ) {
   const rotas = await obterRotas();
 
@@ -221,14 +227,33 @@ export async function salvarPontoTrajeto(
       return rota;
     }
 
+    const trajetoAtual = rota.trajeto ?? [];
+
+    const ultimoPonto = trajetoAtual[trajetoAtual.length - 1];
+
+    if (ultimoPonto) {
+      const distancia = calcularDistanciaEntrePontos(
+        ultimoPonto.latitude,
+        ultimoPonto.longitude,
+        latitude,
+        longitude,
+      );
+
+      // Não salva pontos praticamente iguais.
+      if (distancia < 0.01) {
+        return rota;
+      }
+    }
+
     return {
       ...rota,
       trajeto: [
-        ...(rota.trajeto ?? []),
+        ...trajetoAtual,
         {
           latitude,
           longitude,
           dataHora: new Date().toLocaleString("pt-BR"),
+          accuracy,
         },
       ],
     };
@@ -237,5 +262,5 @@ export async function salvarPontoTrajeto(
   await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(novasRotas));
 }
 export async function limparRotas() {
-  await AsyncStorage.removeItem("rotas");
+  await AsyncStorage.removeItem(CHAVE_ROTAS);
 }

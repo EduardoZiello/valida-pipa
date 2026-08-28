@@ -20,7 +20,6 @@ import {
 export default function RotaEmAndamentoScreen() {
   const [rota, setRota] = useState<any>(null);
   const [quantidadeOcorrencias, setQuantidadeOcorrencias] = useState(0);
-  const [quantidadePontos, setQuantidadePontos] = useState(0);
   const [carregando, setCarregando] = useState(true);
   const [fotoFinal, setFotoFinal] = useState<string | null>(null);
 
@@ -55,7 +54,6 @@ export default function RotaEmAndamentoScreen() {
     setRota(rotaSalva);
 
     setQuantidadeOcorrencias(rotaSalva?.ocorrencias?.length ?? 0);
-    setQuantidadePontos(rotaSalva?.trajeto?.length ?? 0);
 
     setCarregando(false);
   }
@@ -195,10 +193,10 @@ export default function RotaEmAndamentoScreen() {
 
           <View style={styles.rastreamentoInfo}>
             <Text style={styles.rastreamentoPontos}>
-              📍 {quantidadePontos} ponto(s) capturado(s)
+              📍 {rota.trajeto?.length ?? 0} ponto(s) capturado(s)
             </Text>
 
-            {quantidadePontos > 0 && rota.trajeto?.length > 0 && (
+            {rota.trajeto?.length > 0 && (
               <Text style={styles.rastreamentoUltimoPonto}>
                 🕒 Último registro:{" "}
                 {rota.trajeto[rota.trajeto.length - 1].dataHora}

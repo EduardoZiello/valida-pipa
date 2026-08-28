@@ -109,6 +109,29 @@ export default function HistoricoScreen() {
                 {item.ocorrencias?.length ?? 0} ocorrência(s)
               </Text>
             </View>
+            <View style={styles.linhaInfo}>
+              <MaterialCommunityIcons
+                name="map-marker-distance"
+                size={18}
+                color="#1976D2"
+              />
+              <Text style={styles.infoTexto}>
+                {item.distanciaPercorridaKm !== undefined
+                  ? `${item.distanciaPercorridaKm.toFixed(2)} km percorridos`
+                  : "Distância não calculada"}
+              </Text>
+            </View>
+
+            <View style={styles.linhaInfo}>
+              <MaterialCommunityIcons
+                name="map-marker-multiple"
+                size={18}
+                color="#1976D2"
+              />
+              <Text style={styles.infoTexto}>
+                {item.trajeto?.length ?? 0} ponto(s) registrados
+              </Text>
+            </View>
           </Pressable>
         )}
       />

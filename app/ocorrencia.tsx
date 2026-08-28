@@ -1,4 +1,5 @@
 import { abrirCamera } from "@/services/camera";
+import { gerarEvidencia } from "@/services/evidencia";
 import * as RotasService from "@/services/rotas";
 import * as Location from "expo-location";
 import { router } from "expo-router";
@@ -59,10 +60,23 @@ export default function OcorrenciaScreen() {
         return;
       }
 
+      const dataHora = new Date().toLocaleString("pt-BR");
+
+      const fotoProcessada = await gerarEvidencia({
+        foto,
+        dataHora,
+        latitude,
+        longitude,
+        motorista: rota.motorista,
+        placa: rota.placa,
+        rotaId: rota.id,
+        tipo: "OCORRENCIA",
+      });
+
       await RotasService.salvarOcorrencia(rota.id, {
         id: Date.now().toString(),
-        dataHora: new Date().toLocaleString("pt-BR"),
-        foto,
+        dataHora,
+        foto: fotoProcessada,
         latitude,
         longitude,
         observacao,

@@ -43,14 +43,85 @@ export default function DetalhesRotaScreen() {
     }
   }
 
+  function calcularDistanciaMetros(
+    latitude1: number,
+    longitude1: number,
+    latitude2: number,
+    longitude2: number,
+  ): number {
+    const raioTerraMetros = 6371000;
+
+    const diferencaLatitude = ((latitude2 - latitude1) * Math.PI) / 180;
+
+    const diferencaLongitude = ((longitude2 - longitude1) * Math.PI) / 180;
+
+    const latitude1Rad = (latitude1 * Math.PI) / 180;
+    const latitude2Rad = (latitude2 * Math.PI) / 180;
+
+    const a =
+      Math.sin(diferencaLatitude / 2) ** 2 +
+      Math.cos(latitude1Rad) *
+        Math.cos(latitude2Rad) *
+        Math.sin(diferencaLongitude / 2) ** 2;
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return raioTerraMetros * c;
+  }
+
   const coordenadasTrajeto = useMemo(() => {
-    return (
-      rota?.trajeto?.map((ponto) => ({
-        latitude: ponto.latitude,
-        longitude: ponto.longitude,
-      })) ?? []
-    );
-  }, [rota?.trajeto]);
+    if (!rota) {
+      return [];
+    }
+
+    const pontos = rota.trajeto ?? [];
+
+    const resultado = [
+      {
+        latitude: rota.latitudeInicio,
+        longitude: rota.longitudeInicio,
+      },
+    ];
+
+    let ultimoPonto = resultado[0];
+
+    for (const ponto of pontos) {
+      const distancia = calcularDistanciaMetros(
+        ultimoPonto.latitude,
+        ultimoPonto.longitude,
+        ponto.latitude,
+        ponto.longitude,
+      );
+
+      if (distancia >= 10) {
+        const novoPonto = {
+          latitude: ponto.latitude,
+          longitude: ponto.longitude,
+        };
+
+        resultado.push(novoPonto);
+        ultimoPonto = novoPonto;
+      }
+    }
+
+    if (rota.latitudeFim !== undefined && rota.longitudeFim !== undefined) {
+      const distanciaFinal = calcularDistanciaMetros(
+        ultimoPonto.latitude,
+        ultimoPonto.longitude,
+        rota.latitudeFim,
+        rota.longitudeFim,
+      );
+
+      if (distanciaFinal >= 25) {
+        resultado.push({
+          latitude: rota.latitudeFim,
+          longitude: rota.longitudeFim,
+        });
+      }
+    }
+
+    return resultado;
+  }, [rota]);
 
   if (carregando) {
     return (

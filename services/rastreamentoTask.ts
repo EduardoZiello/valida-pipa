@@ -27,10 +27,29 @@ TaskManager.defineTask(RASTREAMENTO_TASK, async ({ data, error }) => {
   }
 
   for (const location of locations) {
-    const { latitude, longitude } = location.coords;
+    const { latitude, longitude, accuracy } = location.coords;
 
-    await salvarPontoTrajeto(rota.id, latitude, longitude);
+    // Ignora pontos com precisão muito ruim.
+    // O ponto continua sendo solicitado pelo rastreamento,
+    // mas não entra no desenho do percurso.
+    if (accuracy !== null && accuracy > 50) {
+      console.log(
+        "RASTREAMENTO BACKGROUND - Ponto ignorado por baixa precisão:",
+        accuracy,
+        "metros",
+      );
 
-    console.log("RASTREAMENTO BACKGROUND - Ponto salvo:", latitude, longitude);
+      continue;
+    }
+
+    await salvarPontoTrajeto(rota.id, latitude, longitude, accuracy);
+
+    console.log(
+      "RASTREAMENTO BACKGROUND - Ponto salvo:",
+      latitude,
+      longitude,
+      "Precisão:",
+      accuracy,
+    );
   }
 });

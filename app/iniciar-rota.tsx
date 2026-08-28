@@ -1,7 +1,7 @@
 import { abrirCamera } from "@/services/camera";
 import { gerarEvidencia } from "@/services/evidencia";
 import { iniciarRastreamento } from "@/services/rastreamento";
-import { obterRotaEmAndamento, salvarRota } from "@/services/rotas";
+import { existeRotaEmAndamento, salvarRota } from "@/services/rotas";
 import { obterCaminhao, obterMotorista } from "@/services/storage";
 import * as Location from "expo-location";
 import { router } from "expo-router";
@@ -111,14 +111,13 @@ export default function IniciarRotaScreen() {
     ) {
       return;
     }
-    const rotaEmAndamento = await obterRotaEmAndamento();
+    const existeRota = await existeRotaEmAndamento();
 
-    if (rotaEmAndamento) {
+    if (existeRota) {
       Alert.alert(
         "Rota em andamento",
         "Já existe uma rota em andamento. Finalize-a antes de iniciar uma nova.",
       );
-
       return;
     }
 
