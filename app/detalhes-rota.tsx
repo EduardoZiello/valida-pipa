@@ -1,14 +1,21 @@
+import {
+  compartilharComprovacaoRota,
+  gerarComprovacaoRota,
+} from "@/services/comprovacaoRota";
 import { obterRotas, Rota } from "@/services/rotas";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { captureRef } from "react-native-view-shot";
 
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,6 +25,7 @@ export default function DetalhesRotaScreen() {
 
   const [rota, setRota] = useState<Rota | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [gerandoComprovante, setGerandoComprovante] = useState(false);
 
   const mapaRef = useRef<MapView | null>(null);
 
@@ -40,6 +48,53 @@ export default function DetalhesRotaScreen() {
       console.error("DETALHES DA ROTA - ERRO:", error);
     } finally {
       setCarregando(false);
+    }
+  }
+
+  async function gerarComprovante() {
+    if (!rota) {
+      return;
+    }
+
+    if (rota.status !== "FINALIZADA") {
+      Alert.alert(
+        "Rota não finalizada",
+        "O comprovante somente pode ser gerado após a finalização da rota.",
+      );
+      return;
+    }
+
+    try {
+      setGerandoComprovante(true);
+
+      let mapaUri: string | undefined;
+
+      if (mapaRef.current) {
+        try {
+          mapaUri = await captureRef(mapaRef as any, {
+            format: "jpg",
+            quality: 0.85,
+            result: "tmpfile",
+          });
+
+          console.log("COMPROVANTE - MAPA CAPTURADO:", mapaUri);
+        } catch (error) {
+          console.error("COMPROVANTE - ERRO AO CAPTURAR MAPA:", error);
+        }
+      }
+
+      const arquivoUri = await gerarComprovacaoRota(rota, mapaUri);
+
+      await compartilharComprovacaoRota(arquivoUri);
+    } catch (error) {
+      console.error("COMPROVANTE DA ROTA - ERRO:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível gerar ou compartilhar o comprovante da rota.",
+      );
+    } finally {
+      setGerandoComprovante(false);
     }
   }
 
@@ -200,6 +255,41 @@ export default function DetalhesRotaScreen() {
             </Text>
           </View>
         </View>
+
+        {/* COMPROVANTE */}
+        {rota.status === "FINALIZADA" && (
+          <View style={styles.comprovanteCard}>
+            <Text style={styles.comprovanteTitulo}>📄 Comprovação da Rota</Text>
+
+            <Text style={styles.comprovanteDescricao}>
+              Gere o documento com os dados, localização, percurso, ocorrências
+              e informações de finalização desta rota.
+            </Text>
+
+            <Pressable
+              style={[
+                styles.botaoComprovante,
+                gerandoComprovante && styles.botaoDesabilitado,
+              ]}
+              onPress={gerarComprovante}
+              disabled={gerandoComprovante}
+            >
+              {gerandoComprovante ? (
+                <>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+
+                  <Text style={styles.botaoComprovanteTexto}>
+                    Gerando comprovante...
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.botaoComprovanteTexto}>
+                  📄 Gerar comprovante da rota
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        )}
 
         {/* FOTO INICIAL */}
         <View style={styles.card}>
@@ -496,6 +586,52 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: "#163A5F",
+  },
+
+  comprovanteCard: {
+    backgroundColor: "#EAF3FF",
+    borderRadius: 18,
+    padding: 20,
+    marginTop: 24,
+    marginBottom: 0,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+
+  comprovanteTitulo: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#163A5F",
+  },
+
+  comprovanteDescricao: {
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#526579",
+  },
+
+  botaoComprovante: {
+    minHeight: 52,
+    marginTop: 18,
+    borderRadius: 14,
+    backgroundColor: "#1976D2",
+    justifyContent: "center",
+    alignItems: "center",
+    flexDirection: "row",
+    paddingHorizontal: 18,
+    elevation: 3,
+  },
+
+  botaoDesabilitado: {
+    opacity: 0.7,
+  },
+
+  botaoComprovanteTexto: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+    marginLeft: 8,
   },
 
   foto: {
