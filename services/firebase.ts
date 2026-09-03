@@ -1,0 +1,16 @@
+import { getApp, getApps, initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+
+const firebaseConfig = {
+  // Cole aqui exatamente os dados mostrados no Firebase Console
+  apiKey: "AIzaSyB0-42LiXN7QYQCxFaJWH-wKbqCainTPoM",
+  authDomain: "valida-pipa-33e0f.firebaseapp.com",
+  projectId: "valida-pipa-33e0f",
+  storageBucket: "valida-pipa-33e0f.firebasestorage.app",
+  messagingSenderId: "783586651354",
+  appId: "1:783586651354:web:f6f519f91e805583e609e3",
+};
+
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+
+export const db = getFirestore(app);
