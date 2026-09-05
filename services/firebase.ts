@@ -1,8 +1,12 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { getApp, getApps, initializeApp } from "firebase/app";
+
+import * as FirebaseAuth from "firebase/auth";
+
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  // Cole aqui exatamente os dados mostrados no Firebase Console
   apiKey: "AIzaSyB0-42LiXN7QYQCxFaJWH-wKbqCainTPoM",
   authDomain: "valida-pipa-33e0f.firebaseapp.com",
   projectId: "valida-pipa-33e0f",
@@ -12,5 +16,17 @@ const firebaseConfig = {
 };
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+
+let auth: FirebaseAuth.Auth;
+
+try {
+  auth = FirebaseAuth.initializeAuth(app, {
+    persistence: (FirebaseAuth as any).getReactNativePersistence(AsyncStorage),
+  });
+} catch {
+  auth = FirebaseAuth.getAuth(app);
+}
+
+export { auth };
 
 export const db = getFirestore(app);

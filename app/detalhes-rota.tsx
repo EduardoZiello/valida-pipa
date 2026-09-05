@@ -123,6 +123,59 @@ export default function DetalhesRotaScreen() {
 
     return raioTerraMetros * c;
   }
+  function converterDataParaTimestamp(data: string): number {
+    const partes = data.split(", ");
+
+    if (partes.length !== 2) {
+      return NaN;
+    }
+
+    const [dataParte, horaParte] = partes;
+
+    const [dia, mes, ano] = dataParte.split("/").map(Number);
+
+    const [hora, minuto, segundo] = horaParte.split(":").map(Number);
+
+    if (
+      !dia ||
+      !mes ||
+      !ano ||
+      Number.isNaN(hora) ||
+      Number.isNaN(minuto) ||
+      Number.isNaN(segundo)
+    ) {
+      return NaN;
+    }
+
+    return new Date(ano, mes - 1, dia, hora, minuto, segundo).getTime();
+  }
+
+  function calcularDuracaoRota(
+    dataHoraInicio: string,
+    dataHoraFim?: string,
+  ): string {
+    if (!dataHoraFim) {
+      return "--";
+    }
+
+    const inicio = converterDataParaTimestamp(dataHoraInicio);
+    const fim = converterDataParaTimestamp(dataHoraFim);
+
+    if (Number.isNaN(inicio) || Number.isNaN(fim) || fim < inicio) {
+      return "--";
+    }
+
+    const duracaoMinutos = Math.floor((fim - inicio) / 60000);
+
+    const horas = Math.floor(duracaoMinutos / 60);
+    const minutos = duracaoMinutos % 60;
+
+    if (horas > 0) {
+      return `${horas}h ${minutos}min`;
+    }
+
+    return `${minutos}min`;
+  }
 
   const coordenadasTrajeto = useMemo(() => {
     if (!rota) {
@@ -220,10 +273,10 @@ export default function DetalhesRotaScreen() {
 
         {/* DADOS DA ROTA */}
         <View style={styles.card}>
-          <Text style={styles.cardTitulo}>📋 Dados da Rota</Text>
+          <Text style={styles.cardTitulo}>📋 Identificação da Rota</Text>
 
           <View style={styles.linha}>
-            <Text style={styles.label}>👤 Motorista</Text>
+            <Text style={styles.label}>👤 Motorista responsável pela Rota</Text>
             <Text style={styles.valor}>{rota.motorista}</Text>
           </View>
 
@@ -234,36 +287,107 @@ export default function DetalhesRotaScreen() {
 
           <View style={styles.linha}>
             <Text style={styles.label}>🆔 ID</Text>
-            <Text style={styles.valor}>VP-{rota.id.slice(-6)}</Text>
+            <Text style={styles.valor}>{rota.id}</Text>
           </View>
 
           <View style={styles.linha}>
             <Text style={styles.label}>📅 Início</Text>
             <Text style={styles.valor}>{rota.dataHoraInicio}</Text>
           </View>
+          {rota.dataHoraFim && (
+            <View style={styles.linha}>
+              <Text style={styles.label}>🏁 Finalização</Text>
+              <Text style={styles.valor}>{rota.dataHoraFim}</Text>
+            </View>
+          )}
 
           <View style={styles.linha}>
             <Text style={styles.label}>✅ Status</Text>
 
-            <Text
-              style={{
-                color: rota.status === "FINALIZADA" ? "#22C55E" : "#1976D2",
-                fontWeight: "700",
-              }}
+            <View
+              style={[
+                styles.statusBadge,
+                rota.status === "FINALIZADA"
+                  ? styles.statusFinalizada
+                  : styles.statusEmAndamento,
+              ]}
             >
-              {rota.status}
-            </Text>
+              <Text
+                style={[
+                  styles.statusBadgeTexto,
+                  rota.status === "FINALIZADA"
+                    ? styles.statusFinalizadaTexto
+                    : styles.statusEmAndamentoTexto,
+                ]}
+              >
+                {rota.status === "FINALIZADA" ? "FINALIZADA" : "EM ANDAMENTO"}
+              </Text>
+            </View>
+          </View>
+        </View>
+        {/* RESUMO DA ROTA */}
+        <View style={styles.resumoCard}>
+          <Text style={styles.resumoTitulo}>📊 Resumo da Rota</Text>
+
+          <View style={styles.resumoLinha}>
+            <View style={styles.resumoItem}>
+              <Text style={styles.resumoNumero}>
+                {rota.distanciaPercorridaKm !== undefined
+                  ? rota.distanciaPercorridaKm.toFixed(2)
+                  : "--"}
+              </Text>
+
+              <Text style={styles.resumoLabel}>km percorridos</Text>
+            </View>
+
+            <View style={styles.resumoDivisor} />
+
+            <View style={styles.resumoItem}>
+              <Text style={styles.resumoNumero}>
+                {rota.trajeto?.length ?? 0}
+              </Text>
+
+              <Text style={styles.resumoLabel}>pontos GPS</Text>
+            </View>
+          </View>
+
+          <View style={styles.resumoLinha}>
+            <View style={styles.resumoItem}>
+              <Text style={styles.resumoNumero}>
+                {rota.ocorrencias?.length ?? 0}
+              </Text>
+
+              <Text style={styles.resumoLabel}>ocorrências</Text>
+            </View>
+
+            <View style={styles.resumoDivisor} />
+
+            <View style={styles.resumoItem}>
+              <Text style={styles.resumoNumero}>
+                {calcularDuracaoRota(rota.dataHoraInicio, rota.dataHoraFim)}
+              </Text>
+
+              <Text style={styles.resumoLabel}>duração da rota</Text>
+            </View>
           </View>
         </View>
 
         {/* COMPROVANTE */}
         {rota.status === "FINALIZADA" && (
           <View style={styles.comprovanteCard}>
-            <Text style={styles.comprovanteTitulo}>📄 Comprovação da Rota</Text>
+            <View style={styles.comprovanteStatus}>
+              <View style={styles.comprovanteStatusDot} />
+
+              <Text style={styles.comprovanteStatusTexto}>
+                ROTA FINALIZADA • COMPROVANTE DISPONÍVEL
+              </Text>
+            </View>
+            <Text style={styles.comprovanteTitulo}>📄 Comprovante da Rota</Text>
 
             <Text style={styles.comprovanteDescricao}>
-              Gere o documento com os dados, localização, percurso, ocorrências
-              e informações de finalização desta rota.
+              Esta rota foi finalizada e possui um documento de comprovação com
+              os registros de localização, percurso, fotos, ocorrências e
+              informações de início e finalização.
             </Text>
 
             <Pressable
@@ -293,7 +417,7 @@ export default function DetalhesRotaScreen() {
 
         {/* FOTO INICIAL */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>📷 Foto Inicial</Text>
+          <Text style={styles.cardTitle}>📷 Evidência Inicial</Text>
 
           {rota.fotoInicio ? (
             <Image source={{ uri: rota.fotoInicio }} style={styles.foto} />
@@ -304,7 +428,7 @@ export default function DetalhesRotaScreen() {
 
         {/* LOCALIZAÇÃO INICIAL */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>📍 Localização Inicial</Text>
+          <Text style={styles.cardTitle}>📍 GPS Inicial Registrado</Text>
 
           <View style={styles.infoLinha}>
             <Text style={styles.infoLabel}>Latitude</Text>
@@ -325,7 +449,7 @@ export default function DetalhesRotaScreen() {
 
         {/* FOTO FINAL */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>📷 Foto Final</Text>
+          <Text style={styles.cardTitle}>📷 Evidência Final</Text>
 
           {rota.fotoFim ? (
             <Image source={{ uri: rota.fotoFim }} style={styles.foto} />
@@ -336,7 +460,7 @@ export default function DetalhesRotaScreen() {
 
         {/* LOCALIZAÇÃO FINAL */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>📍 Localização Final</Text>
+          <Text style={styles.cardTitle}>📍 GPS Final Registrado</Text>
 
           <View style={styles.infoLinha}>
             <Text style={styles.infoLabel}>Latitude</Text>
@@ -361,13 +485,13 @@ export default function DetalhesRotaScreen() {
 
         {/* OCORRÊNCIAS */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>⚠️ Ocorrências</Text>
+          <Text style={styles.cardTitle}>⚠️ Ocorrências Registradas</Text>
 
           {rota.ocorrencias?.length ? (
             rota.ocorrencias.map((ocorrencia, index) => (
               <View key={ocorrencia.id} style={styles.ocorrenciaItem}>
                 <Text style={styles.ocorrenciaTitulo}>
-                  Ocorrência #{index + 1}
+                  Ocorrência #{index + 1} — Evidência registrada
                 </Text>
 
                 <Image source={{ uri: ocorrencia.foto }} style={styles.foto} />
@@ -402,7 +526,7 @@ export default function DetalhesRotaScreen() {
 
         {/* PERCURSO */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>🗺️ Percurso Registrado</Text>
+          <Text style={styles.cardTitle}>📊 Resultado da Execução</Text>
 
           <View style={styles.percursoResumoContainer}>
             <View style={styles.percursoResumoItem}>
@@ -500,8 +624,8 @@ export default function DetalhesRotaScreen() {
           )}
 
           <Text style={styles.infoMapa}>
-            O percurso acima representa os pontos de localização registrados
-            durante a rota.
+            O mapa apresenta o percurso registrado pelo aplicativo durante a
+            execução da rota, incluindo os pontos de localização capturados.
           </Text>
         </View>
       </ScrollView>
@@ -560,8 +684,8 @@ const styles = StyleSheet.create({
   },
 
   cardTitulo: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 21,
+    fontWeight: "800",
     color: "#163A5F",
     marginBottom: 18,
   },
@@ -612,15 +736,15 @@ const styles = StyleSheet.create({
   },
 
   botaoComprovante: {
-    minHeight: 52,
-    marginTop: 18,
-    borderRadius: 14,
+    minHeight: 56,
+    marginTop: 20,
+    borderRadius: 15,
     backgroundColor: "#1976D2",
     justifyContent: "center",
     alignItems: "center",
     flexDirection: "row",
-    paddingHorizontal: 18,
-    elevation: 3,
+    paddingHorizontal: 20,
+    elevation: 4,
   },
 
   botaoDesabilitado: {
@@ -636,7 +760,7 @@ const styles = StyleSheet.create({
 
   foto: {
     width: "100%",
-    height: 260,
+    height: 220,
     borderRadius: 14,
     marginTop: 15,
   },
@@ -749,5 +873,100 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     color: "#6B7280",
+  },
+  statusBadge: {
+    alignSelf: "flex-start",
+    marginTop: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+
+  statusFinalizada: {
+    backgroundColor: "#DCFCE7",
+  },
+
+  statusEmAndamento: {
+    backgroundColor: "#DBEAFE",
+  },
+
+  statusBadgeTexto: {
+    fontSize: 13,
+    fontWeight: "800",
+  },
+
+  statusFinalizadaTexto: {
+    color: "#15803D",
+  },
+
+  statusEmAndamentoTexto: {
+    color: "#1D4ED8",
+  },
+  resumoCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 18,
+    marginTop: 0,
+    marginBottom: 0,
+    elevation: 3,
+  },
+
+  resumoTitulo: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#163A5F",
+    marginBottom: 18,
+  },
+
+  resumoLinha: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    justifyContent: "space-between",
+    marginBottom: 14,
+  },
+
+  resumoItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+
+  resumoNumero: {
+    fontSize: 25,
+    fontWeight: "800",
+    color: "#163A5F",
+  },
+
+  resumoLabel: {
+    marginTop: 5,
+    fontSize: 12,
+    color: "#6B7280",
+    textAlign: "center",
+  },
+
+  resumoDivisor: {
+    width: 1,
+    backgroundColor: "#E5E7EB",
+  },
+  comprovanteStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  comprovanteStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#22C55E",
+    marginRight: 8,
+  },
+
+  comprovanteStatusTexto: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#15803D",
   },
 });

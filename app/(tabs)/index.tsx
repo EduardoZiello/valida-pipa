@@ -1,4 +1,5 @@
 import { obterRotaEmAndamento } from "@/services/rotas";
+
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
@@ -10,6 +11,7 @@ import { obterMotorista } from "@/services/storage";
 export default function HomeScreen() {
   const [nomeMotorista, setNomeMotorista] = useState("");
   const [temRotaEmAndamento, setTemRotaEmAndamento] = useState(false);
+
   const logo = require("@/assets/images/logo-valida-pipa.png");
 
   useFocusEffect(
