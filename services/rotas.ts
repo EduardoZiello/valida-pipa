@@ -3,6 +3,9 @@ import {
   cancelarAlertasRota,
 } from "@/services/notificacoes";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { doc, setDoc } from "firebase/firestore";
+
+import { auth, db } from "@/services/firebase";
 
 const CHAVE_ROTAS = "@valida_pipa_rotas";
 export interface Ocorrencia {
@@ -46,6 +49,19 @@ export interface Rota {
   alertasNotificacao?: string[];
 
   status: "EM_ANDAMENTO" | "FINALIZADA";
+}
+async function salvarRotaNoFirestore(rota: Rota) {
+  const usuario = auth.currentUser;
+
+  if (!usuario) {
+    console.warn("⚠️ Nenhum usuário autenticado para sincronizar a rota.");
+    return;
+  }
+
+  await setDoc(doc(db, "rotas", rota.id), {
+    ...rota,
+    uidUsuario: usuario.uid,
+  });
 }
 
 export async function obterRotas(): Promise<Rota[]> {
@@ -133,6 +149,7 @@ export async function finalizarRota(
   },
 ) {
   const rotas = await obterRotas();
+
   const rota = rotas.find((item) => item.id === id);
 
   if (rota?.alertasNotificacao) {
@@ -158,7 +175,25 @@ export async function finalizarRota(
     };
   });
 
+  const rotaFinalizada = novasRotas.find((item) => item.id === id);
+
   await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(novasRotas));
+
+  if (rotaFinalizada) {
+    try {
+      await salvarRotaNoFirestore(rotaFinalizada);
+
+      console.log(
+        "✅ Rota finalizada sincronizada com o Firestore:",
+        rotaFinalizada.id,
+      );
+    } catch (error) {
+      console.error(
+        "⚠️ Não foi possível atualizar a rota finalizada no Firestore:",
+        error,
+      );
+    }
+  }
 }
 
 export async function salvarRota(rota: Rota) {
@@ -186,6 +221,15 @@ export async function salvarRota(rota: Rota) {
     );
 
     await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(rotasAtualizadas));
+  }
+  try {
+    await salvarRotaNoFirestore(rota);
+    console.log("✅ Rota sincronizada com o Firestore:", rota.id);
+  } catch (error) {
+    console.error(
+      "⚠️ Não foi possível sincronizar a rota com o Firestore:",
+      error,
+    );
   }
 }
 export async function obterRotaEmAndamento(): Promise<Rota | null> {
