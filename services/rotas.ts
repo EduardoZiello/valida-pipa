@@ -1,11 +1,11 @@
+import { auth, db } from "@/services/firebase";
 import {
   agendarAlertaRota,
   cancelarAlertasRota,
 } from "@/services/notificacoes";
+import { criarValidacaoPublica } from "@/services/validacaoRota";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { doc, setDoc } from "firebase/firestore";
-
-import { auth, db } from "@/services/firebase";
 
 const CHAVE_ROTAS = "@valida_pipa_rotas";
 export interface Ocorrencia {
@@ -24,7 +24,7 @@ export interface PontoTrajeto {
 }
 export interface Rota {
   id: string;
-
+  tokenValidacao?: string;
   motorista: string;
 
   placa: string;
@@ -175,9 +175,33 @@ export async function finalizarRota(
     };
   });
 
-  const rotaFinalizada = novasRotas.find((item) => item.id === id);
+  let rotaFinalizada = novasRotas.find((item) => item.id === id);
 
-  await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(novasRotas));
+  if (rotaFinalizada) {
+    try {
+      const tokenValidacao = await criarValidacaoPublica(rotaFinalizada);
+
+      rotaFinalizada = {
+        ...rotaFinalizada,
+        tokenValidacao,
+      };
+
+      const rotasComToken = novasRotas.map((item) =>
+        item.id === rotaFinalizada?.id ? rotaFinalizada : item,
+      );
+
+      await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(rotasComToken));
+    } catch (error) {
+      console.error(
+        "⚠️ Não foi possível criar a validação pública da rota:",
+        error,
+      );
+
+      await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(novasRotas));
+    }
+  } else {
+    await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(novasRotas));
+  }
 
   if (rotaFinalizada) {
     try {
