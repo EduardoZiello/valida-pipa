@@ -1,7 +1,10 @@
 import { abrirCamera } from "@/services/camera";
 import { obterMotorista, salvarMotorista } from "@/services/storage";
+import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
+import { auth } from "@/services/firebase";
+import { signOut } from "firebase/auth";
 import {
   Alert,
   Image,
@@ -78,9 +81,30 @@ export default function PerfilScreen() {
 
     Alert.alert("Sucesso", "Perfil salvo com sucesso!");
   }
+  async function sairDaConta() {
+    try {
+      console.log("🔐 Iniciando logout...");
+
+      await signOut(auth);
+
+      console.log("✅ Logout realizado com sucesso.");
+
+      router.replace("/login");
+    } catch (error) {
+      console.error("❌ ERRO AO SAIR DA CONTA:", error);
+
+      Alert.alert(
+        "Erro",
+        "Não foi possível sair da conta. Verifique o console.",
+      );
+    }
+  }
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
+    <SafeAreaView
+      style={styles.container}
+      edges={["top", "bottom", "left", "right"]}
+    >
       <KeyboardAvoidingView
         style={styles.keyboardContainer}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -120,69 +144,69 @@ export default function PerfilScreen() {
               : "Confira os dados do motorista responsável pela rota."}
           </Text>
 
-          <Text style={styles.label}>Nome</Text>
+          <View>
+            <Text style={styles.dadosCardTitle}>DADOS DO MOTORISTA</Text>
+            <View style={styles.dadosCard}>
+              <Text style={styles.label}>Nome</Text>
+              <TextInput
+                style={styles.input}
+                value={nome}
+                onChangeText={setNome}
+                placeholder="Digite o nome completo"
+                placeholderTextColor="#9CA3AF"
+                returnKeyType="next"
+                editable={editando}
+              />
 
-          <TextInput
-            style={styles.input}
-            value={nome}
-            onChangeText={setNome}
-            placeholder="Digite o nome completo"
-            placeholderTextColor="#9CA3AF"
-            returnKeyType="next"
-            editable={editando}
-          />
+              <Text style={styles.label}>CPF</Text>
+              <TextInput
+                style={styles.input}
+                value={cpf}
+                keyboardType="numeric"
+                onChangeText={setCpf}
+                placeholder="Digite o CPF"
+                placeholderTextColor="#9CA3AF"
+                returnKeyType="next"
+                editable={editando}
+              />
 
-          <Text style={styles.label}>CPF</Text>
+              <Text style={styles.label}>CNH</Text>
+              <TextInput
+                style={styles.input}
+                value={cnh}
+                onChangeText={setCnh}
+                placeholder="Digite o número da CNH"
+                placeholderTextColor="#9CA3AF"
+                returnKeyType="next"
+                editable={editando}
+              />
 
-          <TextInput
-            style={styles.input}
-            value={cpf}
-            keyboardType="numeric"
-            onChangeText={setCpf}
-            placeholder="Digite o CPF"
-            placeholderTextColor="#9CA3AF"
-            returnKeyType="next"
-            editable={editando}
-          />
+              <Text style={styles.label}>Telefone</Text>
+              <TextInput
+                style={styles.input}
+                value={telefone}
+                keyboardType="phone-pad"
+                onChangeText={setTelefone}
+                placeholder="Digite o telefone"
+                placeholderTextColor="#9CA3AF"
+                returnKeyType="next"
+                editable={editando}
+              />
 
-          <Text style={styles.label}>CNH</Text>
-
-          <TextInput
-            style={styles.input}
-            value={cnh}
-            onChangeText={setCnh}
-            placeholder="Digite o número da CNH"
-            placeholderTextColor="#9CA3AF"
-            returnKeyType="next"
-            editable={editando}
-          />
-
-          <Text style={styles.label}>Telefone</Text>
-
-          <TextInput
-            style={styles.input}
-            value={telefone}
-            keyboardType="phone-pad"
-            onChangeText={setTelefone}
-            placeholder="Digite o telefone"
-            placeholderTextColor="#9CA3AF"
-            returnKeyType="next"
-            editable={editando}
-          />
-
-          <Text style={styles.label}>E-mail</Text>
-
-          <TextInput
-            style={styles.input}
-            value={email}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            onChangeText={setEmail}
-            placeholder="Digite o e-mail"
-            placeholderTextColor="#9CA3AF"
-            returnKeyType="done"
-            editable={editando}
-          />
+              <Text style={styles.label}>E-mail</Text>
+              <TextInput
+                style={styles.input}
+                value={email}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                onChangeText={setEmail}
+                placeholder="Digite o e-mail"
+                placeholderTextColor="#9CA3AF"
+                returnKeyType="done"
+                editable={editando}
+              />
+            </View>
+          </View>
 
           <Pressable
             style={styles.button}
@@ -191,6 +215,26 @@ export default function PerfilScreen() {
             <Text style={styles.buttonText}>
               {editando ? "SALVAR ALTERAÇÕES" : "EDITAR PERFIL"}
             </Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.assinaturaButton}
+            onPress={() => router.push("/assinatura")}
+          >
+            <View style={styles.assinaturaContent}>
+              <View>
+                <Text style={styles.assinaturaTitle}>Minha Assinatura</Text>
+                <Text style={styles.assinaturaSubtitle}>
+                  Plano e status do acesso
+                </Text>
+              </View>
+
+              <Text style={styles.assinaturaArrow}>›</Text>
+            </View>
+          </Pressable>
+
+          <Pressable style={styles.logoutButton} onPress={sairDaConta}>
+            <Text style={styles.logoutButtonText}>SAIR DA CONTA</Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -220,6 +264,17 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginBottom: 12,
     overflow: "hidden",
+    borderWidth: 3,
+    borderColor: "#DCEBFA",
+    backgroundColor: "#FFFFFF",
+    elevation: 3,
+    shadowColor: "#163A5F",
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
   },
 
   photoPlaceholder: {
@@ -282,9 +337,9 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    backgroundColor: "#FFF",
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: "#D9E2EC",
+    borderColor: "#E2E8F0",
     borderRadius: 12,
     paddingHorizontal: 16,
     height: 54,
@@ -307,5 +362,77 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontWeight: "700",
     fontSize: 17,
+  },
+  assinaturaButton: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#D9E2EC",
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    marginBottom: 16,
+  },
+
+  assinaturaContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  assinaturaTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#163A5F",
+  },
+
+  assinaturaSubtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 4,
+  },
+
+  assinaturaArrow: {
+    fontSize: 32,
+    fontWeight: "300",
+    color: "#B0BEC5",
+  },
+  logoutButton: {
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#DC2626",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 4,
+  },
+
+  logoutButtonText: {
+    color: "#DC2626",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+  dadosCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#E1E8F0",
+    marginBottom: 4,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+  },
+
+  dadosCardTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#6B7280",
+    letterSpacing: 0.8,
+    marginBottom: 18,
   },
 });

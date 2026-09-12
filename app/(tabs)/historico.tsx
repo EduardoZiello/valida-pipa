@@ -1,14 +1,9 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
-import {
-  FlatList,
-  Pressable,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useFocusEffect } from "expo-router";
 
@@ -150,7 +145,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#163A5F",
     textAlign: "center",
-    marginTop: 25,
+    marginTop: 10,
   },
 
   subtitle: {

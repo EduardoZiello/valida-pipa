@@ -7,6 +7,7 @@ import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   Alert,
   Image,
@@ -169,14 +170,20 @@ export default function IniciarRotaScreen() {
         </Text>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>👤 Motorista</Text>
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons name="account" size={26} color="#1976D2" />
+            <Text style={styles.cardTitle}>Motorista</Text>
+          </View>
           <Text style={styles.cardValue}>
             {motorista?.nome || "Não informado"}
           </Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>🚛 Caminhão</Text>
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons name="truck" size={26} color="#1976D2" />
+            <Text style={styles.cardTitle}>Caminhão</Text>
+          </View>
           <Text style={styles.cardValue}>
             {caminhao
               ? `${caminhao.modelo}\n${caminhao.placa}`
@@ -185,7 +192,10 @@ export default function IniciarRotaScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>📷 Foto Inicial</Text>
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons name="camera" size={26} color="#1976D2" />
+            <Text style={styles.cardTitle}>Foto Inicial</Text>
+          </View>
 
           <Text
             style={[
@@ -214,7 +224,14 @@ export default function IniciarRotaScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>📍 Localização</Text>
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons
+              name="map-marker"
+              size={26}
+              color="#1976D2"
+            />
+            <Text style={styles.cardTitle}>Localização</Text>
+          </View>
 
           <Text
             style={[
@@ -348,5 +365,10 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 18,
     fontWeight: "700",
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
 });

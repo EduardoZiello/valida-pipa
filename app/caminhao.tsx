@@ -3,12 +3,13 @@ import {
   Alert,
   Image,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { abrirCamera, abrirGaleria } from "@/services/camera";
 import { obterCaminhao, salvarCaminhao } from "@/services/storage";
@@ -19,6 +20,7 @@ export default function CaminhaoScreen() {
   const [modelo, setModelo] = useState("");
   const [capacidade, setCapacidade] = useState("");
   const [foto, setFoto] = useState<string | null>(null);
+  const [editando, setEditando] = useState(false);
 
   useEffect(() => {
     carregarCaminhao();
@@ -27,7 +29,12 @@ export default function CaminhaoScreen() {
   async function carregarCaminhao() {
     const caminhao = await obterCaminhao();
 
-    if (!caminhao) return;
+    if (!caminhao) {
+      setEditando(true);
+      return;
+    }
+
+    setEditando(false);
 
     setPlaca(caminhao.placa || "");
     setRenavam(caminhao.renavam || "");
@@ -109,25 +116,35 @@ export default function CaminhaoScreen() {
 
     await salvarCaminhao(caminhao);
 
+    setEditando(false);
+
     Alert.alert("Sucesso", "Caminhão salvo com sucesso!");
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={styles.container}
+      edges={["top", "bottom", "left", "right"]}
+    >
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Pressable style={styles.photoCard} onPress={abrirMenuFoto}>
+        <Pressable
+          style={styles.photoCard}
+          onPress={abrirMenuFoto}
+          disabled={!editando}
+        >
           {foto ? (
-            <Image
-              source={{ uri: foto }}
-              style={{
-                width: "100%",
-                height: "100%",
-                borderRadius: 16,
-              }}
-            />
+            <>
+              <Image source={{ uri: foto }} style={styles.photoImage} />
+
+              <View style={styles.photoOverlay}>
+                <Text style={styles.photoOverlayText}>
+                  TOCAR PARA ALTERAR A FOTO
+                </Text>
+              </View>
+            </>
           ) : (
             <>
               <Text style={styles.photoIcon}>📷</Text>
@@ -135,7 +152,7 @@ export default function CaminhaoScreen() {
               <Text style={styles.photoTitle}>Foto do Caminhão</Text>
 
               <Text style={styles.photoSubtitle}>
-                Toque para adicionar uma foto
+                Adicione uma foto para identificação do veículo
               </Text>
             </>
           )}
@@ -147,47 +164,56 @@ export default function CaminhaoScreen() {
           Informe os dados do veículo utilizado nas rotas.
         </Text>
 
-        <Text style={styles.label}>Placa</Text>
+        <View style={styles.dadosCard}>
+          <Text style={styles.dadosCardTitle}>DADOS DO VEÍCULO</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="ABC-1234"
-          value={placa}
-          onChangeText={setPlaca}
-          autoCapitalize="characters"
-        />
+          <Text style={styles.label}>Placa</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="ABC-1234"
+            value={placa}
+            onChangeText={setPlaca}
+            autoCapitalize="characters"
+            editable={editando}
+          />
 
-        <Text style={styles.label}>RENAVAM</Text>
+          <Text style={styles.label}>RENAVAM</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Número do RENAVAM"
+            keyboardType="numeric"
+            value={renavam}
+            onChangeText={setRenavam}
+            editable={editando}
+          />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Número do RENAVAM"
-          keyboardType="numeric"
-          value={renavam}
-          onChangeText={setRenavam}
-        />
+          <Text style={styles.label}>Modelo</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ex.: Mercedes Atego"
+            value={modelo}
+            onChangeText={setModelo}
+            editable={editando}
+          />
 
-        <Text style={styles.label}>Modelo</Text>
+          <Text style={styles.label}>Capacidade do Tanque (Litros)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ex.: 10000"
+            keyboardType="numeric"
+            value={capacidade}
+            onChangeText={setCapacidade}
+            editable={editando}
+          />
+        </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Ex.: Mercedes Atego"
-          value={modelo}
-          onChangeText={setModelo}
-        />
-
-        <Text style={styles.label}>Capacidade do Tanque (Litros)</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Ex.: 10000"
-          keyboardType="numeric"
-          value={capacidade}
-          onChangeText={setCapacidade}
-        />
-
-        <Pressable style={styles.button} onPress={salvar}>
-          <Text style={styles.buttonText}>SALVAR</Text>
+        <Pressable
+          style={styles.button}
+          onPress={editando ? salvar : () => setEditando(true)}
+        >
+          <Text style={styles.buttonText}>
+            {editando ? "SALVAR ALTERAÇÕES" : "EDITAR CAMINHÃO"}
+          </Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -204,18 +230,39 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 40,
   },
-
   photoCard: {
-    height: 170,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderStyle: "dashed",
-    borderColor: "#1565C0",
-    backgroundColor: "#EEF6FF",
+    height: 190,
+    borderRadius: 20,
+    backgroundColor: "#EAF2FC",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
-    marginBottom: 30,
+    marginTop: 8,
+    marginBottom: 28,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#D6E2F0",
+  },
+
+  photoImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  photoOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(22, 58, 95, 0.78)",
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+
+  photoOverlayText: {
+    color: "#FFF",
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
 
   photoIcon: {
@@ -280,5 +327,29 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontWeight: "700",
     fontSize: 17,
+  },
+  dadosCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "#E1E8F0",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+
+  dadosCardTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#6B7280",
+    letterSpacing: 0.8,
+    marginBottom: 22,
   },
 });

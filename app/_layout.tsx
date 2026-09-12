@@ -12,7 +12,7 @@ import { StatusBar } from "expo-status-bar";
 
 import { onAuthStateChanged } from "firebase/auth";
 
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Image, Text, View } from "react-native";
 
 import "react-native-reanimated";
 
@@ -36,6 +36,7 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [usuario, setUsuario] = useState(auth.currentUser);
   const [verificandoLogin, setVerificandoLogin] = useState(true);
+  const [mostrarSplash, setMostrarSplash] = useState(true);
 
   const evidenciaRef = useRef<EvidenciaGeradorRef>(null);
 
@@ -49,6 +50,14 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setMostrarSplash(false);
+    }, 1800);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     registrarGeradorEvidencia(async (dados) => {
       if (!evidenciaRef.current) {
         throw new Error("Gerador de evidência não está disponível.");
@@ -58,7 +67,7 @@ export default function RootLayout() {
     });
   }, []);
 
-  if (verificandoLogin) {
+  if (verificandoLogin || mostrarSplash) {
     return (
       <View
         style={{
@@ -68,7 +77,44 @@ export default function RootLayout() {
           backgroundColor: "#F5FAFF",
         }}
       >
-        <ActivityIndicator size="large" color="#2196F3" />
+        <Image
+          source={require("@/assets/images/logo-valida-pipa.png")}
+          style={{
+            width: 150,
+            height: 150,
+            marginBottom: 18,
+          }}
+          resizeMode="contain"
+        />
+
+        <Text
+          style={{
+            fontSize: 30,
+            fontWeight: "800",
+            color: "#438FE0",
+            letterSpacing: 1,
+          }}
+        >
+          VALIDA PIPA
+        </Text>
+
+        <Text
+          style={{
+            marginTop: 6,
+            fontSize: 16,
+            color: "#6B7280",
+          }}
+        >
+          Validação inteligente de rotas
+        </Text>
+
+        <ActivityIndicator
+          size="small"
+          color="#2196F3"
+          style={{
+            marginTop: 28,
+          }}
+        />
       </View>
     );
   }
@@ -76,7 +122,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+          }}
+        >
           {usuario ? (
             <>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

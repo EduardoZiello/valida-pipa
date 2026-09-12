@@ -688,16 +688,16 @@ async function gerarHtmlComprovacao(
         <!-- OCORRÊNCIAS -->
 
         <div class="titulo-secao">
-          4. Ocorrências Registradas
-        </div>
+  5. Ocorrências Registradas
+</div>
 
         ${listaOcorrencias}
 
         <!-- FINALIZAÇÃO -->
 
         <div class="titulo-secao">
-          5. Finalização da Rota
-        </div>
+  6. Finalização da Rota
+</div>
 
         <table class="dados">
 
@@ -744,8 +744,8 @@ async function gerarHtmlComprovacao(
         <!-- RESULTADO -->
 
         <div class="titulo-secao">
-          6. Resultado da Comprovação
-        </div>
+  7. Resultado da Comprovação
+</div>
 
         <div class="resultado">
 

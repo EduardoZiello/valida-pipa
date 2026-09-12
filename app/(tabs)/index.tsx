@@ -61,7 +61,12 @@ export default function HomeScreen() {
       </Text>
 
       <Text style={styles.greeting}>{nomeMotorista || "Motorista"}</Text>
-      <View style={styles.statusContainer}>
+      <View
+        style={[
+          styles.statusCard,
+          temRotaEmAndamento && styles.statusCardAtiva,
+        ]}
+      >
         <View
           style={[
             styles.statusDot,
@@ -71,7 +76,7 @@ export default function HomeScreen() {
           ]}
         />
 
-        <View>
+        <View style={styles.statusContent}>
           <Text style={styles.statusTitle}>
             {temRotaEmAndamento
               ? "Rota em andamento"
@@ -80,7 +85,7 @@ export default function HomeScreen() {
 
           <Text style={styles.statusSubtitle}>
             {temRotaEmAndamento
-              ? "Toque abaixo para continuar"
+              ? "Você tem uma rota sendo registrada"
               : "Pronto para iniciar uma nova rota"}
           </Text>
         </View>
@@ -167,10 +172,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 24,
   },
-  statusContainer: {
+  statusCard: {
+    width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 36,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+  },
+
+  statusCardAtiva: {
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
+  },
+
+  statusContent: {
+    flex: 1,
   },
 
   statusDot: {

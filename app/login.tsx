@@ -1,8 +1,8 @@
 import { auth } from "@/services/firebase";
 
 import {
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
 } from "firebase/auth";
 
 import { router } from "expo-router";
@@ -10,13 +10,14 @@ import { router } from "expo-router";
 import { useState } from "react";
 
 import {
-    ActivityIndicator,
-    Alert,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 export default function LoginScreen() {
@@ -103,7 +104,11 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.logo}>💧</Text>
+      <Image
+        source={require("@/assets/images/logo-valida-pipa.png")}
+        style={styles.logo}
+        resizeMode="contain"
+      />
 
       <Text style={styles.title}>VALIDA PIPA</Text>
 
@@ -175,8 +180,9 @@ const styles = StyleSheet.create({
   },
 
   logo: {
-    fontSize: 56,
-    textAlign: "center",
+    width: 120,
+    height: 120,
+    alignSelf: "center",
     marginBottom: 8,
   },
 

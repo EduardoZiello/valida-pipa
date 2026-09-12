@@ -8,18 +8,22 @@ import {
   Alert,
   Image,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
 } from "react-native";
 
+import { SafeAreaView } from "react-native-safe-area-context";
+
 export default function OcorrenciaScreen() {
   const [foto, setFoto] = useState<string | null>(null);
   const [observacao, setObservacao] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  const fotoCapturada = !!foto;
+  const gpsCapturado = latitude !== null && longitude !== null;
+  const podeSalvar = fotoCapturada && gpsCapturado;
 
   async function tirarFoto() {
     const uri = await abrirCamera();
@@ -121,7 +125,14 @@ export default function OcorrenciaScreen() {
           style={styles.input}
         />
 
-        <Pressable style={styles.botaoSalvar} onPress={salvarOcorrenciaNaRota}>
+        <Pressable
+          style={[
+            styles.botaoSalvar,
+            !podeSalvar && styles.botaoSalvarDesabilitado,
+          ]}
+          onPress={salvarOcorrenciaNaRota}
+          disabled={!podeSalvar}
+        >
           <Text style={styles.botaoTexto}>SALVAR OCORRÊNCIA</Text>
         </Pressable>
       </ScrollView>
@@ -170,6 +181,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginTop: 20,
+  },
+  botaoSalvarDesabilitado: {
+    backgroundColor: "#B0BEC5",
   },
 
   botaoTexto: {

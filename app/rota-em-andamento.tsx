@@ -2,6 +2,7 @@ import { abrirCamera } from "@/services/camera";
 import { gerarEvidencia } from "@/services/evidencia";
 import { pararRastreamento } from "@/services/rastreamento";
 import { finalizarRota, obterRotaEmAndamento } from "@/services/rotas";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { router, useFocusEffect } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -10,12 +11,12 @@ import {
   Alert,
   Image,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function RotaEmAndamentoScreen() {
   const [rota, setRota] = useState<any>(null);
@@ -158,9 +159,16 @@ export default function RotaEmAndamentoScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={styles.container}
+      edges={["top", "bottom", "left", "right"]}
+    >
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>🚛 Rota em Andamento</Text>
+        <View style={styles.titleContainer}>
+          <MaterialCommunityIcons name="truck-fast" size={34} color="#1976D2" />
+
+          <Text style={styles.title}>Rota em Andamento</Text>
+        </View>
 
         <View style={styles.card}>
           <Text style={styles.label}>🆔 ID</Text>
@@ -345,11 +353,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 25,
+  },
+
   title: {
     fontSize: 28,
     fontWeight: "700",
     color: "#163A5F",
-    marginBottom: 25,
+    marginLeft: 10,
     textAlign: "center",
   },
 
