@@ -5,7 +5,14 @@ import {
 } from "@/services/notificacoes";
 import { criarValidacaoPublica } from "@/services/validacaoRota";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { doc, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDocs,
+  query,
+  setDoc,
+  where,
+} from "firebase/firestore";
 
 const CHAVE_ROTAS = "@valida_pipa_rotas";
 export interface Ocorrencia {
@@ -67,11 +74,41 @@ async function salvarRotaNoFirestore(rota: Rota) {
 export async function obterRotas(): Promise<Rota[]> {
   const json = await AsyncStorage.getItem(CHAVE_ROTAS);
 
-  if (!json) {
+  if (json) {
+    const rotasLocais: Rota[] = JSON.parse(json);
+
+    if (rotasLocais.length > 0) {
+      return rotasLocais;
+    }
+  }
+
+  const usuario = auth.currentUser;
+
+  if (!usuario) {
     return [];
   }
 
-  return JSON.parse(json);
+  try {
+    const consulta = query(
+      collection(db, "rotas"),
+      where("uidUsuario", "==", usuario.uid),
+    );
+
+    const snapshot = await getDocs(consulta);
+
+    const rotasFirebase: Rota[] = snapshot.docs.map(
+      (documento) => documento.data() as Rota,
+    );
+
+    if (rotasFirebase.length > 0) {
+      await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(rotasFirebase));
+    }
+
+    return rotasFirebase;
+  } catch (error) {
+    console.error("❌ Erro ao recuperar rotas do Firebase:", error);
+    return [];
+  }
 }
 function calcularDistanciaEntrePontos(
   latitude1: number,
