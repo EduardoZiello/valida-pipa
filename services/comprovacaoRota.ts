@@ -138,6 +138,7 @@ function gerarBlocoOcorrencia(
 async function gerarHtmlComprovacao(
   rota: Rota,
   mapaUri?: string,
+  qrCodeBase64?: string,
 ): Promise<string> {
   const ocorrencias = rota.ocorrencias ?? [];
   const trajeto = rota.trajeto ?? [];
@@ -150,6 +151,25 @@ async function gerarHtmlComprovacao(
 
   const fotoFimBase64 = await imagemParaBase64(rota.fotoFim);
   const mapaBase64 = await imagemParaBase64(mapaUri);
+  const blocoQrCode = qrCodeBase64
+    ? `
+    <div class="qr-validacao">
+      <div class="qr-titulo">
+        Validação pública do comprovante
+      </div>
+
+      <img
+        src="${qrCodeBase64}"
+        class="qr-imagem"
+      />
+
+      <div class="qr-descricao">
+        Escaneie o QR Code para consultar a autenticidade
+        deste comprovante.
+      </div>
+    </div>
+  `
+    : "";
 
   const listaOcorrencias =
     ocorrencias.length > 0
@@ -435,6 +455,34 @@ async function gerarHtmlComprovacao(
 
             page-break-inside: avoid;
           }
+            .qr-validacao {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid #dbeafe;
+  background: #f8fafc;
+  text-align: center;
+  page-break-inside: avoid;
+}
+
+.qr-titulo {
+  font-size: 14px;
+  font-weight: bold;
+  color: #1e3a8a;
+  margin-bottom: 12px;
+}
+
+.qr-imagem {
+  display: block;
+  width: 180px;
+  height: 180px;
+  margin: 0 auto;
+}
+
+.qr-descricao {
+  margin-top: 10px;
+  font-size: 10px;
+  color: #64748b;
+}
 
           .rodape {
             margin-top: 30px;
@@ -758,6 +806,7 @@ async function gerarHtmlComprovacao(
           de início e finalização.
 
         </div>
+                ${blocoQrCode}
 
         <div class="rodape">
 
@@ -780,13 +829,14 @@ async function gerarHtmlComprovacao(
 export async function gerarComprovacaoRota(
   rota: Rota,
   mapaUri?: string,
+  qrCodeBase64?: string,
 ): Promise<string> {
   if (rota.status !== "FINALIZADA") {
     throw new Error(
       "A comprovação somente pode ser gerada para uma rota finalizada.",
     );
   }
-  const html = await gerarHtmlComprovacao(rota, mapaUri);
+  const html = await gerarHtmlComprovacao(rota, mapaUri, qrCodeBase64);
 
   const resultado = await Print.printToFileAsync({
     html,

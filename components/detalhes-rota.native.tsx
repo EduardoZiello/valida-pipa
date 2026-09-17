@@ -1,19 +1,22 @@
+import QRCodeParaPdf, {
+  type QRCodeParaPdfRef,
+} from "@/components/QRCodeParaPdf";
 import {
-    compartilharComprovacaoRota,
-    gerarComprovacaoRota,
+  compartilharComprovacaoRota,
+  gerarComprovacaoRota,
 } from "@/services/comprovacaoRota";
 import { obterRotas, Rota } from "@/services/rotas";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { captureRef } from "react-native-view-shot";
 
@@ -28,6 +31,7 @@ export default function DetalhesRotaScreen() {
   const [gerandoComprovante, setGerandoComprovante] = useState(false);
 
   const mapaRef = useRef<MapView | null>(null);
+  const qrCodeRef = useRef<QRCodeParaPdfRef | null>(null);
 
   useEffect(() => {
     carregarRota();
@@ -63,6 +67,13 @@ export default function DetalhesRotaScreen() {
       );
       return;
     }
+    if (!rota.tokenValidacao) {
+      Alert.alert(
+        "Validação indisponível",
+        "Esta rota não possui um código de validação pública.",
+      );
+      return;
+    }
 
     try {
       setGerandoComprovante(true);
@@ -83,7 +94,21 @@ export default function DetalhesRotaScreen() {
         }
       }
 
-      const arquivoUri = await gerarComprovacaoRota(rota, mapaUri);
+      const urlValidacao = `https://valida-pipa-33e0f.web.app/validar/${rota.tokenValidacao}`;
+
+      const qrCodeBase64 = await qrCodeRef.current?.gerarBase64();
+
+      if (!qrCodeBase64) {
+        throw new Error("Não foi possível gerar o QR Code de validação.");
+      }
+
+      console.log("COMPROVANTE - URL DE VALIDAÇÃO:", urlValidacao);
+
+      const arquivoUri = await gerarComprovacaoRota(
+        rota,
+        mapaUri,
+        qrCodeBase64,
+      );
 
       await compartilharComprovacaoRota(arquivoUri);
     } catch (error) {
@@ -629,6 +654,12 @@ export default function DetalhesRotaScreen() {
           </Text>
         </View>
       </ScrollView>
+      {rota.tokenValidacao && (
+        <QRCodeParaPdf
+          ref={qrCodeRef}
+          valor={`https://valida-pipa-33e0f.web.app/validar/${rota.tokenValidacao}`}
+        />
+      )}
     </SafeAreaView>
   );
 }
