@@ -1,4 +1,4 @@
-import { abrirCamera } from "@/services/camera";
+import { abrirCamera, abrirGaleria } from "@/services/camera";
 import { obterMotorista, salvarMotorista } from "@/services/storage";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -54,15 +54,40 @@ export default function PerfilScreen() {
   async function tirarFoto() {
     if (!editando) return;
 
-    try {
-      const uri = await abrirCamera();
+    Alert.alert("Foto do motorista", "Como deseja adicionar a foto?", [
+      {
+        text: "Tirar foto",
+        onPress: async () => {
+          try {
+            const uri = await abrirCamera();
 
-      if (uri) {
-        setFoto(uri);
-      }
-    } catch {
-      Alert.alert("Erro", "Não foi possível abrir a câmera.");
-    }
+            if (uri) {
+              setFoto(uri);
+            }
+          } catch {
+            Alert.alert("Erro", "Não foi possível abrir a câmera.");
+          }
+        },
+      },
+      {
+        text: "Escolher da galeria",
+        onPress: async () => {
+          try {
+            const uri = await abrirGaleria();
+
+            if (uri) {
+              setFoto(uri);
+            }
+          } catch {
+            Alert.alert("Erro", "Não foi possível abrir a galeria.");
+          }
+        },
+      },
+      {
+        text: "Cancelar",
+        style: "cancel",
+      },
+    ]);
   }
 
   async function salvar() {

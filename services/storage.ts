@@ -3,21 +3,31 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 
 import { auth, db } from "@/services/firebase";
 
-const MOTORISTA_KEY = "@valida_pipa:motorista";
-const CAMINHAO_KEY = "@valida_pipa:caminhao";
+const MOTORISTA_KEY_BASE = "@valida_pipa:motorista";
+const CAMINHAO_KEY_BASE = "@valida_pipa:caminhao";
+
+function getMotoristaKey(uid: string) {
+  return `${MOTORISTA_KEY_BASE}:${uid}`;
+}
+
+function getCaminhaoKey(uid: string) {
+  return `${CAMINHAO_KEY_BASE}:${uid}`;
+}
 
 // ========================
 // MOTORISTA
 // ========================
 
 export async function salvarMotorista(dados: any) {
-  await AsyncStorage.setItem(MOTORISTA_KEY, JSON.stringify(dados));
-
   const usuario = auth.currentUser;
 
   if (!usuario) {
     return;
   }
+
+  const motoristaKey = getMotoristaKey(usuario.uid);
+
+  await AsyncStorage.setItem(motoristaKey, JSON.stringify(dados));
 
   await setDoc(
     doc(db, "usuarios", usuario.uid),
@@ -29,16 +39,18 @@ export async function salvarMotorista(dados: any) {
 }
 
 export async function obterMotorista() {
-  const dados = await AsyncStorage.getItem(MOTORISTA_KEY);
-
-  if (dados) {
-    return JSON.parse(dados);
-  }
-
   const usuario = auth.currentUser;
 
   if (!usuario) {
     return null;
+  }
+
+  const motoristaKey = getMotoristaKey(usuario.uid);
+
+  const dados = await AsyncStorage.getItem(motoristaKey);
+
+  if (dados) {
+    return JSON.parse(dados);
   }
 
   try {
@@ -54,7 +66,7 @@ export async function obterMotorista() {
       return null;
     }
 
-    await AsyncStorage.setItem(MOTORISTA_KEY, JSON.stringify(dadosFirebase));
+    await AsyncStorage.setItem(motoristaKey, JSON.stringify(dadosFirebase));
 
     return dadosFirebase;
   } catch (error) {
@@ -69,13 +81,15 @@ export async function obterMotorista() {
 // ========================
 
 export async function salvarCaminhao(dados: any) {
-  await AsyncStorage.setItem(CAMINHAO_KEY, JSON.stringify(dados));
-
   const usuario = auth.currentUser;
 
   if (!usuario) {
     return;
   }
+
+  const caminhaoKey = getCaminhaoKey(usuario.uid);
+
+  await AsyncStorage.setItem(caminhaoKey, JSON.stringify(dados));
 
   await setDoc(
     doc(db, "usuarios", usuario.uid),
@@ -87,16 +101,18 @@ export async function salvarCaminhao(dados: any) {
 }
 
 export async function obterCaminhao() {
-  const dados = await AsyncStorage.getItem(CAMINHAO_KEY);
-
-  if (dados) {
-    return JSON.parse(dados);
-  }
-
   const usuario = auth.currentUser;
 
   if (!usuario) {
     return null;
+  }
+
+  const caminhaoKey = getCaminhaoKey(usuario.uid);
+
+  const dados = await AsyncStorage.getItem(caminhaoKey);
+
+  if (dados) {
+    return JSON.parse(dados);
   }
 
   try {
@@ -112,7 +128,7 @@ export async function obterCaminhao() {
       return null;
     }
 
-    await AsyncStorage.setItem(CAMINHAO_KEY, JSON.stringify(dadosFirebase));
+    await AsyncStorage.setItem(caminhaoKey, JSON.stringify(dadosFirebase));
 
     return dadosFirebase;
   } catch (error) {

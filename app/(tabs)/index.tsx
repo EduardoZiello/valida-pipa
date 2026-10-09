@@ -1,23 +1,50 @@
+import { auth } from "@/services/firebase";
 import { obterRotaEmAndamento } from "@/services/rotas";
+import { obterMotorista } from "@/services/storage";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { onAuthStateChanged } from "firebase/auth";
+import { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-import { obterMotorista } from "@/services/storage";
 
 export default function HomeScreen() {
   const [nomeMotorista, setNomeMotorista] = useState("");
   const [temRotaEmAndamento, setTemRotaEmAndamento] = useState(false);
+  const [verificandoAutenticacao, setVerificandoAutenticacao] = useState(true);
 
   const logo = require("@/assets/images/logo-valida-pipa.png");
 
+  useEffect(() => {
+    const cancelarObservador = onAuthStateChanged(auth, (usuario) => {
+      if (!usuario) {
+        setVerificandoAutenticacao(false);
+        router.replace("/login");
+        return;
+      }
+
+      setVerificandoAutenticacao(false);
+    });
+
+    return cancelarObservador;
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
+      if (verificandoAutenticacao || !auth.currentUser) {
+        return;
+      }
+
       carregarMotorista();
-    }, []),
+    }, [verificandoAutenticacao]),
   );
 
   async function carregarMotorista() {
@@ -25,11 +52,35 @@ export default function HomeScreen() {
 
     if (motorista?.nome) {
       setNomeMotorista(motorista.nome);
+    } else {
+      setNomeMotorista("");
     }
 
     const rota = await obterRotaEmAndamento();
 
     setTemRotaEmAndamento(!!rota);
+  }
+
+  if (verificandoAutenticacao) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <Image source={logo} style={styles.loadingLogo} resizeMode="contain" />
+
+        <Text style={styles.loadingTitle}>VALIDA PIPA</Text>
+
+        <ActivityIndicator
+          size="large"
+          color="#2196F3"
+          style={styles.loadingIndicator}
+        />
+
+        <Text style={styles.loadingText}>Verificando acesso...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!auth.currentUser) {
+    return null;
   }
 
   return (
@@ -61,6 +112,7 @@ export default function HomeScreen() {
       </Text>
 
       <Text style={styles.greeting}>{nomeMotorista || "Motorista"}</Text>
+
       <View
         style={[
           styles.statusCard,
@@ -128,7 +180,12 @@ export default function HomeScreen() {
           onPress={() => router.push("/perfil")}
         >
           <View>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
               <MaterialCommunityIcons
                 name="account-circle"
                 size={28}
@@ -137,6 +194,7 @@ export default function HomeScreen() {
 
               <Text style={[styles.menuTitle, { marginLeft: 10 }]}>Perfil</Text>
             </View>
+
             <Text style={styles.menuSubtitle}>Dados do motorista</Text>
           </View>
 
@@ -148,15 +206,22 @@ export default function HomeScreen() {
           onPress={() => router.push("/caminhao")}
         >
           <View>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
               <MaterialCommunityIcons name="truck" size={28} color="#1976D2" />
 
               <Text style={[styles.menuTitle, { marginLeft: 10 }]}>
                 Caminhão
               </Text>
             </View>
+
             <Text style={styles.menuSubtitle}>Dados do veículo</Text>
           </View>
+
           <Text style={styles.arrow}>›</Text>
         </Pressable>
       </View>
@@ -165,6 +230,36 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#F5FAFF",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+
+  loadingLogo: {
+    width: 120,
+    height: 120,
+    marginBottom: 10,
+  },
+
+  loadingTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#2196F3",
+  },
+
+  loadingIndicator: {
+    marginTop: 28,
+  },
+
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#6B7280",
+  },
+
   container: {
     flex: 1,
     backgroundColor: "#F5FAFF",
@@ -172,6 +267,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 24,
   },
+
   statusCard: {
     width: "100%",
     flexDirection: "row",
@@ -221,16 +317,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  logo: {
-    fontSize: 70,
-    marginBottom: 20,
-  },
-
   title: {
     fontSize: 28,
     fontWeight: "bold",
     color: "#2196F3",
   },
+
   arrow: {
     fontSize: 34,
     color: "#B0BEC5",
@@ -244,6 +336,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 20,
   },
+
   greetingTitle: {
     marginTop: 18,
     fontSize: 18,
@@ -261,13 +354,9 @@ const styles = StyleSheet.create({
   button: {
     width: "100%",
     backgroundColor: "#2196F3",
-
     paddingVertical: 22,
-
     borderRadius: 18,
-
     alignItems: "center",
-
     shadowColor: "#1976D2",
     shadowOpacity: 0.18,
     shadowRadius: 12,
@@ -275,7 +364,6 @@ const styles = StyleSheet.create({
       width: 0,
       height: 6,
     },
-
     elevation: 8,
   },
 
@@ -301,11 +389,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  menuText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-  },
   menuTitle: {
     fontSize: 19,
     fontWeight: "700",

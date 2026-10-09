@@ -14,7 +14,12 @@ import {
   where,
 } from "firebase/firestore";
 
-const CHAVE_ROTAS = "@valida_pipa_rotas";
+const CHAVE_ROTAS_BASE = "@valida_pipa_rotas";
+
+function getRotasKey(uid: string) {
+  return `${CHAVE_ROTAS_BASE}:${uid}`;
+}
+
 export interface Ocorrencia {
   id: string;
   dataHora: string;
@@ -23,14 +28,17 @@ export interface Ocorrencia {
   foto: string;
   observacao: string;
 }
+
 export interface PontoTrajeto {
   latitude: number;
   longitude: number;
   dataHora: string;
   accuracy?: number | null;
 }
+
 export interface Rota {
   id: string;
+  uidUsuario?: string;
   tokenValidacao?: string;
   motorista: string;
 
@@ -43,7 +51,7 @@ export interface Rota {
   longitudeInicio: number;
   fotoInicio: string;
 
-  // Final (opcionais até a rota ser encerrada)
+  // Final
   dataHoraFim?: string;
   latitudeFim?: number;
   longitudeFim?: number;
@@ -57,6 +65,7 @@ export interface Rota {
 
   status: "EM_ANDAMENTO" | "FINALIZADA";
 }
+
 async function salvarRotaNoFirestore(rota: Rota) {
   const usuario = auth.currentUser;
 
@@ -72,7 +81,15 @@ async function salvarRotaNoFirestore(rota: Rota) {
 }
 
 export async function obterRotas(): Promise<Rota[]> {
-  const json = await AsyncStorage.getItem(CHAVE_ROTAS);
+  const usuario = auth.currentUser;
+
+  if (!usuario) {
+    return [];
+  }
+
+  const chaveRotas = getRotasKey(usuario.uid);
+
+  const json = await AsyncStorage.getItem(chaveRotas);
 
   if (json) {
     const rotasLocais: Rota[] = JSON.parse(json);
@@ -80,12 +97,6 @@ export async function obterRotas(): Promise<Rota[]> {
     if (rotasLocais.length > 0) {
       return rotasLocais;
     }
-  }
-
-  const usuario = auth.currentUser;
-
-  if (!usuario) {
-    return [];
   }
 
   try {
@@ -101,15 +112,17 @@ export async function obterRotas(): Promise<Rota[]> {
     );
 
     if (rotasFirebase.length > 0) {
-      await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(rotasFirebase));
+      await AsyncStorage.setItem(chaveRotas, JSON.stringify(rotasFirebase));
     }
 
     return rotasFirebase;
   } catch (error) {
     console.error("❌ Erro ao recuperar rotas do Firebase:", error);
+
     return [];
   }
 }
+
 function calcularDistanciaEntrePontos(
   latitude1: number,
   longitude1: number,
@@ -119,6 +132,7 @@ function calcularDistanciaEntrePontos(
   const raioTerraKm = 6371;
 
   const diferencaLatitude = ((latitude2 - latitude1) * Math.PI) / 180;
+
   const diferencaLongitude = ((longitude2 - longitude1) * Math.PI) / 180;
 
   const latitude1Rad = (latitude1 * Math.PI) / 180;
@@ -134,6 +148,7 @@ function calcularDistanciaEntrePontos(
 
   return raioTerraKm * c;
 }
+
 function calcularDistanciaPercorrida(
   rota: Rota,
   latitudeFinal: number,
@@ -141,10 +156,34 @@ function calcularDistanciaPercorrida(
 ): number {
   const pontos = rota.trajeto ?? [];
 
+  const MAX_VELOCIDADE_KMH = 140;
+
   let distanciaTotalKm = 0;
 
   let latitudeAnterior = rota.latitudeInicio;
   let longitudeAnterior = rota.longitudeInicio;
+  let dataHoraAnterior = rota.dataHoraInicio;
+
+  function obterTimestamp(dataHora: string): number {
+    const correspondencia = dataHora.match(
+      /^(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}):(\d{2}):(\d{2})$/,
+    );
+
+    if (correspondencia) {
+      const [, dia, mes, ano, hora, minuto, segundo] = correspondencia;
+
+      return new Date(
+        Number(ano),
+        Number(mes) - 1,
+        Number(dia),
+        Number(hora),
+        Number(minuto),
+        Number(segundo),
+      ).getTime();
+    }
+
+    return new Date(dataHora).getTime();
+  }
 
   for (const ponto of pontos) {
     const distancia = calcularDistanciaEntrePontos(
@@ -154,12 +193,43 @@ function calcularDistanciaPercorrida(
       ponto.longitude,
     );
 
-    // Ignora pequenas oscilações do GPS
-    // sem deixar de registrar o ponto no trajeto.
-    if (distancia >= 0.025) {
-      distanciaTotalKm += distancia;
+    const tempoAnterior = obterTimestamp(dataHoraAnterior);
+
+    const tempoAtual = obterTimestamp(ponto.dataHora);
+
+    const diferencaHoras = (tempoAtual - tempoAnterior) / (1000 * 60 * 60);
+
+    let pontoValido = true;
+
+    if (
+      Number.isFinite(tempoAnterior) &&
+      Number.isFinite(tempoAtual) &&
+      diferencaHoras > 0 &&
+      diferencaHoras < 1
+    ) {
+      const velocidadeKmH = distancia / diferencaHoras;
+
+      if (velocidadeKmH > MAX_VELOCIDADE_KMH) {
+        pontoValido = false;
+
+        console.warn(
+          "DISTÂNCIA - Segmento ignorado por velocidade impossível:",
+          {
+            distanciaKm: Number(distancia.toFixed(3)),
+            velocidadeKmH: Number(velocidadeKmH.toFixed(1)),
+          },
+        );
+      }
+    }
+
+    if (pontoValido) {
+      if (distancia >= 0.025) {
+        distanciaTotalKm += distancia;
+      }
+
       latitudeAnterior = ponto.latitude;
       longitudeAnterior = ponto.longitude;
+      dataHoraAnterior = ponto.dataHora;
     }
   }
 
@@ -170,12 +240,44 @@ function calcularDistanciaPercorrida(
     longitudeFinal,
   );
 
-  if (distanciaFinal >= 0.025) {
+  const tempoAnterior = obterTimestamp(dataHoraAnterior);
+
+  const tempoFinal = rota.dataHoraFim
+    ? obterTimestamp(rota.dataHoraFim)
+    : Date.now();
+
+  const diferencaHorasFinal = (tempoFinal - tempoAnterior) / (1000 * 60 * 60);
+
+  let segmentoFinalValido = true;
+
+  if (
+    Number.isFinite(tempoAnterior) &&
+    Number.isFinite(tempoFinal) &&
+    diferencaHorasFinal > 0 &&
+    diferencaHorasFinal < 1
+  ) {
+    const velocidadeFinalKmH = distanciaFinal / diferencaHorasFinal;
+
+    if (velocidadeFinalKmH > MAX_VELOCIDADE_KMH) {
+      segmentoFinalValido = false;
+
+      console.warn(
+        "DISTÂNCIA - Segmento final ignorado por velocidade impossível:",
+        {
+          distanciaKm: Number(distanciaFinal.toFixed(3)),
+          velocidadeKmH: Number(velocidadeFinalKmH.toFixed(1)),
+        },
+      );
+    }
+  }
+
+  if (segmentoFinalValido && distanciaFinal >= 0.025) {
     distanciaTotalKm += distanciaFinal;
   }
 
   return Number(distanciaTotalKm.toFixed(2));
 }
+
 export async function finalizarRota(
   id: string,
   dados: {
@@ -185,6 +287,13 @@ export async function finalizarRota(
     fotoFim: string;
   },
 ) {
+  const usuario = auth.currentUser;
+
+  if (!usuario) {
+    return;
+  }
+
+  const chaveRotas = getRotasKey(usuario.uid);
   const rotas = await obterRotas();
 
   const rota = rotas.find((item) => item.id === id);
@@ -227,17 +336,17 @@ export async function finalizarRota(
         item.id === rotaFinalizada?.id ? rotaFinalizada : item,
       );
 
-      await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(rotasComToken));
+      await AsyncStorage.setItem(chaveRotas, JSON.stringify(rotasComToken));
     } catch (error) {
       console.error(
         "⚠️ Não foi possível criar a validação pública da rota:",
         error,
       );
 
-      await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(novasRotas));
+      await AsyncStorage.setItem(chaveRotas, JSON.stringify(novasRotas));
     }
   } else {
-    await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(novasRotas));
+    await AsyncStorage.setItem(chaveRotas, JSON.stringify(novasRotas));
   }
 
   if (rotaFinalizada) {
@@ -258,34 +367,56 @@ export async function finalizarRota(
 }
 
 export async function salvarRota(rota: Rota) {
+  const usuario = auth.currentUser;
+
+  if (!usuario) {
+    console.warn("⚠️ Nenhum usuário autenticado para salvar a rota.");
+    return;
+  }
+
+  const chaveRotas = getRotasKey(usuario.uid);
+
+  const rotaComUsuario: Rota = {
+    ...rota,
+    uidUsuario: usuario.uid,
+  };
+
   const rotas = await obterRotas();
 
-  rota.ocorrencias = [];
-  rota.trajeto = [];
+  rotaComUsuario.ocorrencias = [];
+  rotaComUsuario.trajeto = [];
 
-  rotas.unshift(rota);
+  rotas.unshift(rotaComUsuario);
 
-  await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(rotas));
+  await AsyncStorage.setItem(chaveRotas, JSON.stringify(rotas));
 
-  const alertas = await agendarAlertaRota(rota.id, rota.dataHoraInicio);
+  const alertas = await agendarAlertaRota(
+    rotaComUsuario.id,
+    rotaComUsuario.dataHoraInicio,
+  );
 
   if (alertas) {
-    rota.alertasNotificacao = [alertas.primeiroAlerta, alertas.segundoAlerta];
+    rotaComUsuario.alertasNotificacao = [
+      alertas.primeiroAlerta,
+      alertas.segundoAlerta,
+    ];
 
     const rotasAtualizadas = rotas.map((item) =>
-      item.id === rota.id
+      item.id === rotaComUsuario.id
         ? {
             ...item,
-            alertasNotificacao: rota.alertasNotificacao,
+            alertasNotificacao: rotaComUsuario.alertasNotificacao,
           }
         : item,
     );
 
-    await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(rotasAtualizadas));
+    await AsyncStorage.setItem(chaveRotas, JSON.stringify(rotasAtualizadas));
   }
+
   try {
-    await salvarRotaNoFirestore(rota);
-    console.log("✅ Rota sincronizada com o Firestore:", rota.id);
+    await salvarRotaNoFirestore(rotaComUsuario);
+
+    console.log("✅ Rota sincronizada com o Firestore:", rotaComUsuario.id);
   } catch (error) {
     console.error(
       "⚠️ Não foi possível sincronizar a rota com o Firestore:",
@@ -293,17 +424,27 @@ export async function salvarRota(rota: Rota) {
     );
   }
 }
+
 export async function obterRotaEmAndamento(): Promise<Rota | null> {
   const rotas = await obterRotas();
 
   return rotas.find((rota) => rota.status === "EM_ANDAMENTO") || null;
 }
+
 export async function existeRotaEmAndamento(): Promise<boolean> {
   const rota = await obterRotaEmAndamento();
 
   return rota !== null;
 }
+
 export async function salvarOcorrencia(rotaId: string, ocorrencia: Ocorrencia) {
+  const usuario = auth.currentUser;
+
+  if (!usuario) {
+    return;
+  }
+
+  const chaveRotas = getRotasKey(usuario.uid);
   const rotas = await obterRotas();
 
   const novasRotas = rotas.map((rota) => {
@@ -317,14 +458,22 @@ export async function salvarOcorrencia(rotaId: string, ocorrencia: Ocorrencia) {
     };
   });
 
-  await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(novasRotas));
+  await AsyncStorage.setItem(chaveRotas, JSON.stringify(novasRotas));
 }
+
 export async function salvarPontoTrajeto(
   rotaId: string,
   latitude: number,
   longitude: number,
   accuracy?: number | null,
 ) {
+  const usuario = auth.currentUser;
+
+  if (!usuario) {
+    return;
+  }
+
+  const chaveRotas = getRotasKey(usuario.uid);
   const rotas = await obterRotas();
 
   const novasRotas = rotas.map((rota) => {
@@ -364,8 +513,17 @@ export async function salvarPontoTrajeto(
     };
   });
 
-  await AsyncStorage.setItem(CHAVE_ROTAS, JSON.stringify(novasRotas));
+  await AsyncStorage.setItem(chaveRotas, JSON.stringify(novasRotas));
 }
+
 export async function limparRotas() {
-  await AsyncStorage.removeItem(CHAVE_ROTAS);
+  const usuario = auth.currentUser;
+
+  if (!usuario) {
+    return;
+  }
+
+  const chaveRotas = getRotasKey(usuario.uid);
+
+  await AsyncStorage.removeItem(chaveRotas);
 }
