@@ -2,6 +2,7 @@ import { auth } from "@/services/firebase";
 
 import {
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
 } from "firebase/auth";
 
@@ -102,6 +103,45 @@ export default function LoginScreen() {
     }
   }
 
+  async function recuperarSenha() {
+    const emailInformado = email.trim();
+
+    if (!emailInformado) {
+      Alert.alert(
+        "Informe seu e-mail",
+        "Digite seu e-mail no campo acima para receber o link de recuperação.",
+      );
+      return;
+    }
+
+    try {
+      setCarregando(true);
+
+      await sendPasswordResetEmail(auth, emailInformado);
+
+      Alert.alert(
+        "Verifique seu e-mail",
+        "Se esse endereço puder receber a recuperação, você receberá as instruções para redefinir sua senha. Confira também a caixa de spam.",
+      );
+    } catch (error: any) {
+      console.error("ERRO AO RECUPERAR SENHA:", error);
+
+      let mensagem =
+        "Não foi possível solicitar a recuperação. Confira o e-mail e tente novamente.";
+
+      if (error?.code === "auth/invalid-email") {
+        mensagem = "Informe um endereço de e-mail válido.";
+      } else if (error?.code === "auth/too-many-requests") {
+        mensagem =
+          "Foram feitas muitas tentativas. Aguarde um pouco antes de tentar novamente.";
+      }
+
+      Alert.alert("Recuperação de senha", mensagem);
+    } finally {
+      setCarregando(false);
+    }
+  }
+
   return (
     <View style={styles.container}>
       <Image
@@ -156,7 +196,15 @@ export default function LoginScreen() {
         </Pressable>
 
         <Pressable
-          style={styles.createButton}
+          style={styles.forgotPasswordButton}
+          onPress={recuperarSenha}
+          disabled={carregando}
+        >
+          <Text style={styles.forgotPasswordText}>Esqueci minha senha</Text>
+        </Pressable>
+
+        <Pressable
+          style={[styles.createButton, carregando && styles.buttonDisabled]}
           onPress={criarConta}
           disabled={carregando}
         >
@@ -243,6 +291,20 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 17,
     fontWeight: "800",
+  },
+
+  forgotPasswordButton: {
+    alignSelf: "center",
+    alignItems: "center",
+    paddingVertical: 10,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+
+  forgotPasswordText: {
+    color: "#1976D2",
+    fontSize: 14,
+    fontWeight: "700",
   },
 
   createButton: {

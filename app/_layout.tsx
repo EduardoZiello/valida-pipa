@@ -12,7 +12,7 @@ import { StatusBar } from "expo-status-bar";
 
 import { onAuthStateChanged } from "firebase/auth";
 
-import { ActivityIndicator, Image, Text, View } from "react-native";
+import { ActivityIndicator, Image, View } from "react-native";
 
 import "react-native-reanimated";
 
@@ -69,51 +69,17 @@ export default function RootLayout() {
 
   if (verificandoLogin || mostrarSplash) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#F5FAFF",
-        }}
-      >
+      <View style={styles.splashContainer}>
         <Image
-          source={require("@/assets/images/logo-valida-pipa.png")}
-          style={{
-            width: 150,
-            height: 150,
-            marginBottom: 18,
-          }}
+          source={require("@/assets/images/icone-valida-pipa.png")}
+          style={styles.splashLogo}
           resizeMode="contain"
         />
 
-        <Text
-          style={{
-            fontSize: 30,
-            fontWeight: "800",
-            color: "#438FE0",
-            letterSpacing: 1,
-          }}
-        >
-          VALIDA PIPA
-        </Text>
-
-        <Text
-          style={{
-            marginTop: 6,
-            fontSize: 16,
-            color: "#6B7280",
-          }}
-        >
-          Validação inteligente de rotas
-        </Text>
-
         <ActivityIndicator
           size="small"
-          color="#2196F3"
-          style={{
-            marginTop: 28,
-          }}
+          color="#0879E8"
+          style={styles.splashIndicator}
         />
       </View>
     );
@@ -142,10 +108,28 @@ export default function RootLayout() {
           )}
         </Stack>
 
-        <StatusBar style="auto" />
+        <StatusBar style="dark" />
       </ThemeProvider>
 
       <EvidenciaGerador ref={evidenciaRef} />
     </SafeAreaProvider>
   );
 }
+
+const styles = {
+  splashContainer: {
+    flex: 1,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    backgroundColor: "#F5FAFF",
+  },
+
+  splashLogo: {
+    width: 150,
+    height: 150,
+  },
+
+  splashIndicator: {
+    marginTop: 28,
+  },
+};
